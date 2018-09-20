@@ -19,16 +19,18 @@ namespace ghosthunter {
 
     //% block="transmit|message %msg"
     export function transmit(msg: string): string {
-        if (msg == 'TEST'){
+        if (msg == 'TEST') {
             return "TEST"
-        }else{
+        } else {
             sendtopi(msg)
         }
-        
+        return ""
     }
 
     //% block="decode|sign %sign"
-    export function decode(sign: string): string {
+    export function decode(sign: Image): string {
+        //Serialise the screen image into a string
+        
         return "BOO!";
     }
 
@@ -46,7 +48,7 @@ namespace ghosthunter {
         switch (command) {
             case 'reset':
                 control.reset()
-                break;            
+                break;
             case 'text':
                 basic.showString(value)
                 break;
