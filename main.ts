@@ -5,8 +5,13 @@
 namespace ghosthunter {
 
     //% block
-    export function gMeterRead(): number {
-        return 0
+    export function startUp() {
+        //serial.writeString("Ready")
+    }
+
+    //% block
+    export function gMeter(): number {
+        return scan("G");  
     }
 
     // note that Caml casing yields lower case
@@ -14,7 +19,14 @@ namespace ghosthunter {
 
     //% block
     export function ectoScan(): number {
-        return 0
+        return scan("E");
+    }
+
+    function scan(msg: string): number {
+        sendtopi(msg);
+        basic.pause(1000);
+        let result = serial.readLine();
+        return parseInt(result)  
     }
 
     //% block="transmit|message %msg"
@@ -30,13 +42,13 @@ namespace ghosthunter {
     //% block="decode|sign %sign"
     export function decode(sign: Image): string {
         //Serialise the screen image into a string
-        
+
         return "BOO!";
     }
 
 
     function sendtopi(code: string) {
-
+        serial.writeLine(code);
     }
 
     /**
@@ -56,8 +68,11 @@ namespace ghosthunter {
 
     }
 
-    function getpimessages() {
-
+    function getpimessages() {        
+        let msg: string = serial.readLine();
+        if (msg.length > 0){
+            picommand(msg);
+        }
     }
 
 
