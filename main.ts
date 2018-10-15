@@ -3,7 +3,7 @@
  */
 //% color=190 weight=100 icon="\uf21b" block="Ghost Hunter"
 namespace ghosthunter {
-
+    let sep: string = ";;";
     //% block
     export function startUp() {
         //serial.writeString("Ready")
@@ -11,7 +11,7 @@ namespace ghosthunter {
 
     //% block
     export function gMeter(): number {
-        return scan("G");  
+        return scan("G" + sep);
     }
 
     // note that Caml casing yields lower case
@@ -19,14 +19,14 @@ namespace ghosthunter {
 
     //% block
     export function ectoScan(): number {
-        return scan("E");
+        return scan("E" + sep);
     }
 
     function scan(msg: string): number {
         sendtopi(msg);
         basic.pause(1000);
-        let result = serial.readLine();
-        return parseInt(result)  
+        let result = serial.readUntil("}")
+        return parseInt(result)
     }
 
     //% block="transmit|message %msg"
@@ -68,12 +68,20 @@ namespace ghosthunter {
 
     }
 
-    function getpimessages() {        
+    serial.onDataReceived("$", function () {
+        serial.readUntil("$");
         let msg: string = serial.readLine();
-        if (msg.length > 0){
+        if (msg.length > 0) {
             picommand(msg);
         }
-    }
+    })
+    
+    /*function getpimessages() {
+        let msg: string = serial.readLine();
+        if (msg.length > 0) {
+            picommand(msg);
+        }
+    }*/
 
 
 
