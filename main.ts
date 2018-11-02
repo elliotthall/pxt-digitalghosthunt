@@ -1,12 +1,26 @@
 /**
  * 
  */
-//% color=190 weight=100 icon="\uf21b" block="Ghost Hunter"
+//% color=#333300 weight=100 icon="\uf21b" block="Ghost Hunter"
 namespace ghosthunter {
+    //telegraph
+    let alphabet: string[] = []
+    let morse: string[] = []
+    let scan_result = 0;
+
+    radio.setGroup(99);
+
+    morse = [".-", "-...", "-.-.", "-..", ".", "..-.", "--.", "....", "..", ".---", "-.-", ".-..", "--", "-.", "---", ".--.", "--.-", ".-.", "...", "-", "..-", "...-", ".--", "-..-", "-.--", "--..", ".----", "..---", "...--", "....-", ".....", "-....", "--...", "---..", "----.", "-----"]
+    alphabet = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
+
+
     let sep: string = ";;";
+
+
+    // Sprit sign
     let selected = [[0, -1]];
-    let x:number = 0;
-    let y:number = 0;
+    let x: number = 2;
+    let y: number = 2;
     // Spirit signs
     let signs = [images.createImage(`
     # . . . #
@@ -24,10 +38,16 @@ namespace ghosthunter {
         `)
     ]
     // Their translations, by index
-    let msgs = ['A', 'B']
+    let msgs = ['A', 'Boo!']
     //% block
     export function startUp() {
         //serial.writeString("Ready")
+        /* 
+    Used in the finale when the ghost 'speaks' through detectors
+    */
+        radio.onReceivedString(function (receivedString: string) {
+            basic.showString(receivedString);
+        });
     }
 
     //% block
@@ -46,16 +66,46 @@ namespace ghosthunter {
     function scan(msg: string): number {
         sendtopi(msg);
         basic.pause(1000);
-        let result = serial.readUntil("}")
-        return parseInt(result)
+        let result = serial.readUntil("}");
+        scan_result = parseInt(result);
+        return scan_result;
     }
 
     //% block="transmit|message %msg"
     export function transmit(msg: string): string {
+        basic.showLeds(`
+    . . # . .
+    . . # . .
+    . . # . .
+    . . # . .
+    . . # . .
+    `);
+        basic.pause(300);
+        basic.showLeds(`
+    # . # . #
+    . # # # .
+    # . # . #
+    . . # . .
+    . . # . .
+    `)
+        basic.pause(300);
+        basic.showLeds(`
+    . . # . .
+    . . # . .
+    . . # . .
+    . . # . .
+    . . # . .
+    `);
         if (msg == 'TEST') {
             return "TEST"
         } else {
-            sendtopi(msg)
+            //sendtopi(msg)
+            for (let m = 0; m < morse.length; m++) {
+                if (msg == morse[m]) {
+                    return alphabet[m];
+                }
+            }
+
         }
         return ""
     }
@@ -68,8 +118,7 @@ namespace ghosthunter {
             lean = "D";
         } else if (y <= -25) {
             lean = "U";
-        }
-        if (x >= 25) {
+        } else if (x >= 25) {
             lean = "R";
         } else if (x <= -25) {
             lean = "L";
@@ -79,7 +128,7 @@ namespace ghosthunter {
     }
 
     //%block
-    export function select(x: number, y: number) {
+    export function select() {
         selected.push([x, y]);
     }
     //%block="Move Up"
@@ -105,8 +154,8 @@ namespace ghosthunter {
     }
 
     //%block="Move Left"
-    export function moveLeft() {        
-        if (notselected(x,y) == true){
+    export function moveLeft() {
+        if (notselected(x, y) == true) {
             led.unplot(x, y);
         }
         if (x > 0) {
@@ -115,7 +164,7 @@ namespace ghosthunter {
         led.plot(x, y);
     }
 
-    function notselected(x: number, y: number): boolean{
+    function notselected(x: number, y: number): boolean {
         let toggle = true;
         for (let s = 0; s < selected.length; s++) {
             if (x == selected[s][0] && y == selected[s][1]) {
@@ -132,7 +181,7 @@ namespace ghosthunter {
             led.unplot(x, y);
         }
         if (x < 4) {
-            x += -1;
+            x += 1;
         }
         led.plot(x, y);
     }
@@ -167,6 +216,9 @@ namespace ghosthunter {
                 break;
             }
         }
+        selected = [];
+        x = 2;
+        y = 2;
         return msg;
     }
 
@@ -192,12 +244,23 @@ namespace ghosthunter {
 
     }
 
+    // Commands from pi to microbit
     serial.onDataReceived("$", function () {
         let msg: string = serial.readUntil("$");
         if (msg.length > 0) {
             picommand(msg);
         }
     })
+
+    // Scan results (done as a listener to avoid timeout)
+    /* serial.onDataReceived("}", function () {
+         let msg: string = serial.readUntil("}");
+         if (msg.length > 0) {
+             scan_result = parseInt(msg);
+         }
+     })*/
+
+
 
     /*function getpimessages() {
         let msg: string = serial.readLine();
