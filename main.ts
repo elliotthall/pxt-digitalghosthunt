@@ -7,6 +7,8 @@ namespace ghosthunter {
     let alphabet: string[] = []
     let morse: string[] = []
     let scan_result = 0;
+    // Toggle test version so students can use it
+    let test_mode = true;
 
     radio.setGroup(99);
 
@@ -22,23 +24,80 @@ namespace ghosthunter {
     let x: number = 2;
     let y: number = 2;
     // Spirit signs
-    let signs = [images.createImage(`
-    # . . . #
-    . # . # .
-    . # # # .
-    . # . # .
-    # . . . #
-    `),
-    images.createImage(`
+    let signs = [
+        images.createImage(`
         # . . . .
         # . . . .
         # # # # #
         . . . . #
         . . . . #
-        `)
+        `),
+        images.createImage(`
+        # . . . #
+        . . # . .
+        . . # . .
+        . . # . .
+        # . . . #
+        `),
+        images.createImage(`
+        # . . . .
+        # . . . .
+        # . . . #
+        . . . . #
+        . . . . #
+        `),
+        images.createImage(`
+        # # . . .
+        . . . . .
+        . . . . .
+        . . . . .
+        . . . . .
+        `),
+        images.createImage(`
+        # # . . .
+        # . . . .
+        . . . . .
+        . . . . #
+        . . . # #
+        `),
+        images.createImage(`
+        . . . . #
+        . . . . #
+        . . # # #
+        . . . . .
+        # . . . .
+        `),
+        images.createImage(`
+        . . # . .
+        . . # . .
+        . . . . .
+        . . # . .
+        . . # . .
+        `),
+        images.createImage(`
+        . . . . .
+        . . . . .
+        # # . # #
+        . . . . .
+        . . . . .
+        `),
+        images.createImage(`
+        . . . . .
+        . . . . .
+        . . . . .
+        . . # . .
+        # # # # #
+        `),
+        images.createImage(`
+        # . . . #
+        # . . . #
+        # # # # #
+        . . . . .
+        . . . . .
+        `),
     ]
     // Their translations, by index
-    let msgs = ['A', 'M']
+    let msgs = ['A', 'M', 'UNDER', 'OVER', 'THIEF', 'YES', 'NO', 'WAIT', 'DANGER']
     //% block
     export function startUp() {
         //serial.writeString("Ready")
@@ -53,6 +112,7 @@ namespace ghosthunter {
     //% block
     export function gMeter(): number {
         return scan("G" + sep);
+
     }
 
     // note that Caml casing yields lower case
@@ -64,10 +124,22 @@ namespace ghosthunter {
     }
 
     function scan(msg: string): number {
-        sendtopi(msg);
-        basic.pause(1000);
-        let result = serial.readUntil("}");
-        scan_result = parseInt(result);
+        if (test_mode) {
+            // Return a random number so they can test
+            scan_result = Math.randomRange(0, 10)
+        } else {
+            sendtopi(msg);
+            basic.pause(1000);
+            //let result = serial.readUntil("}");
+            let result = serial.readString()
+            if (result.length >0 && result.indexOf("}")>0){
+                result = result.substr(0,(result.indexOf("}")-1));
+                scan_result = parseInt(result);
+            }else{
+                scan_result = 0;
+            }
+            
+        }
         return scan_result;
     }
 
