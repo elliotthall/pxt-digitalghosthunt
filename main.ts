@@ -1,8 +1,8 @@
 /**
  * 
  */
-//% color=#333300 weight=100 icon="\uf21b" block="Ghost Hunter"
-namespace SEEK {
+//% color=#333300 weight=100 icon="\uf21b" block="SEEK"
+namespace ghosthunter {
     //telegraph
     let alphabet: string[] = []
     let morse: string[] = []
