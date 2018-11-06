@@ -132,13 +132,13 @@ namespace ghosthunter {
             basic.pause(1000);
             //let result = serial.readUntil("}");
             let result = serial.readString()
-            if (result.length >0 && result.indexOf("}")>0){
-                result = result.substr(0,(result.indexOf("}")-1));
+            if (result.length > 0 && result.indexOf("}") > 0) {
+                result = result.substr(0, result.indexOf("}"));
                 scan_result = parseInt(result);
-            }else{
+            } else {
                 scan_result = 0;
             }
-            
+
         }
         return scan_result;
     }
