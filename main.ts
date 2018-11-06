@@ -2,7 +2,7 @@
  * 
  */
 //% color=#333300 weight=100 icon="\uf21b" block="Ghost Hunter"
-namespace ghosthunter {
+namespace SEEK {
     //telegraph
     let alphabet: string[] = []
     let morse: string[] = []
@@ -30,15 +30,15 @@ namespace ghosthunter {
     # . . . #
     `),
     images.createImage(`
-        . . . . .
-        . . . . .
+        # . . . .
+        # . . . .
         # # # # #
-        . . . . .
-        . . . . .
+        . . . . #
+        . . . . #
         `)
     ]
     // Their translations, by index
-    let msgs = ['A', 'Boo!']
+    let msgs = ['A', 'M']
     //% block
     export function startUp() {
         //serial.writeString("Ready")
@@ -114,13 +114,13 @@ namespace ghosthunter {
         let y = input.rotation(Rotation.Pitch);
         let x = input.rotation(Rotation.Roll);
         let lean = "";
-        if (y >= 25) {
+        if (y >= 15) {
             lean = "D";
-        } else if (y <= -25) {
+        } else if (y <= -15) {
             lean = "U";
-        } else if (x >= 25) {
+        } else if (x >= 15) {
             lean = "R";
-        } else if (x <= -25) {
+        } else if (x <= -15) {
             lean = "L";
         }
 
