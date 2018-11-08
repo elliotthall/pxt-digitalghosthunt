@@ -1,7 +1,7 @@
 /**
- * 
  */
-//% color=#333300 weight=100 icon="\uf21b" block="SEEK"
+// % color=#333300 weight=100 icon="\uf21b"
+// block="SEEK"
 namespace ghosthunter {
     //telegraph
     let alphabet: string[] = []
@@ -97,7 +97,7 @@ namespace ghosthunter {
         `),
     ]
     // Their translations, by index
-    let msgs = ['A', 'M', 'UNDER', 'OVER', 'THIEF', 'YES', 'NO', 'WAIT', 'DANGER']
+    let msgs = ['A', 'M', 'UNDER', 'OVER', 'THIEF', 'YES', 'NO', 'WAIT', 'DANGER', 'THANK YOU']
     //% block
     export function startUp() {
         //serial.writeString("Ready")
@@ -109,11 +109,14 @@ namespace ghosthunter {
         });
     }
 
+    
+
     //% block
     export function gMeter(): number {
         return scan("G" + sep);
 
     }
+    
 
     // note that Caml casing yields lower case
     // block text with spaces
@@ -183,16 +186,16 @@ namespace ghosthunter {
     }
     //% block="lean"
     export function lean(): string {
-        let y = input.rotation(Rotation.Pitch);
-        let x = input.rotation(Rotation.Roll);
+        let z = input.rotation(Rotation.Pitch);
+        let a = input.rotation(Rotation.Roll);
         let lean = "";
-        if (y >= 15) {
+        if (z >= 15) {
             lean = "D";
-        } else if (y <= -15) {
+        } else if (z <= -15) {
             lean = "U";
-        } else if (x >= 15) {
+        } else if (a >= 15) {
             lean = "R";
-        } else if (x <= -15) {
+        } else if (a <= -15) {
             lean = "L";
         }
 
@@ -267,16 +270,16 @@ namespace ghosthunter {
 
         let msg: string = "?"
         let matches: boolean = true
-        for (let s = 0; s < signs.length; s++) {
+        for (let t = 0; t < signs.length; t++) {
             matches = true
-            for (let x = 0; x < 5; x++) {
-                for (let y = 0; y < 5; y++) {
-                    if (led.point(x, y)) {
-                        if (!signs[s].pixel(x, y)) {
+            for (let b = 0; b < 5; b++) {
+                for (let c = 0; c < 5; c++) {
+                    if (led.point(b, c)) {
+                        if (!signs[t].pixel(b, c)) {
                             matches = false;
                         }
-                    } else if (!led.point(x, y)) {
-                        if (signs[s].pixel(x, y)) {
+                    } else if (!led.point(b, c)) {
+                        if (signs[t].pixel(b, c)) {
                             matches = false;
                         }
                     }
@@ -284,7 +287,7 @@ namespace ghosthunter {
                 }
             }
             if (matches) {
-                msg = msgs[s]
+                msg = msgs[t]
                 break;
             }
         }
@@ -318,9 +321,9 @@ namespace ghosthunter {
 
     // Commands from pi to microbit
     serial.onDataReceived("$", function () {
-        let msg: string = serial.readUntil("$");
-        if (msg.length > 0) {
-            picommand(msg);
+        let msg2: string = serial.readUntil("$");
+        if (msg2.length > 0) {
+            picommand(msg2);
         }
     })
 
@@ -341,6 +344,6 @@ namespace ghosthunter {
         }
     }*/
 
-
+    
 
 }
