@@ -8,7 +8,7 @@ namespace ghosthunter {
     let morse: string[] = []
     let scan_result = 0;
     // Toggle test version so students can use it
-    let test_mode = true;
+    let test_mode = false;
 
     radio.setGroup(99);
 
@@ -109,14 +109,14 @@ namespace ghosthunter {
         });
     }
 
-    
+
 
     //% block
     export function gMeter(): number {
         return scan("G" + sep);
 
     }
-    
+
 
     // note that Caml casing yields lower case
     // block text with spaces
@@ -344,6 +344,6 @@ namespace ghosthunter {
         }
     }*/
 
-    
+
 
 }
