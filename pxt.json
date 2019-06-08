@@ -1,6 +1,6 @@
 {
     "name": "pxt-digitalghosthunt",
-    "version": "0.0.0",
+    "version": "2.0.0",
     "description": "",
     "dependencies": {
         "core": "*",
@@ -8,11 +8,15 @@
     },
     "files": [
         "README.md",
-        "main.ts"
+        "main.cpp",
+        "main.ts",        
+        "shims.d.ts",
+        "enums.d.ts"
     ],
     "testFiles": [
         "test.ts"
     ],
     "public": false,
-    "installedVersion": "workspace:f337880d-efe5-45f4-dccc-cc166cf98439"
+    "installedVersion": "workspace:f337880d-efe5-45f4-dccc-cc166cf98439",
+    "preferredEditor": "tsprj"
 }

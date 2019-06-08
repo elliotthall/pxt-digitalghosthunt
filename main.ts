@@ -9,16 +9,9 @@ namespace ghosthunter {
     let scan_result = 0;
     // Toggle test version so students can use it
     let test_mode = false;
-
-    radio.setGroup(99);
-
     morse = [".-", "-...", "-.-.", "-..", ".", "..-.", "--.", "....", "..", ".---", "-.-", ".-..", "--", "-.", "---", ".--.", "--.-", ".-.", "...", "-", "..-", "...-", ".--", "-..-", "-.--", "--..", ".----", "..---", "...--", "....-", ".....", "-....", "--...", "---..", "----.", "-----"]
     alphabet = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
-
-
     let sep: string = ";;";
-
-
     // Sprit sign
     let selected = [[0, -1]];
     let x: number = 2;
@@ -95,20 +88,30 @@ namespace ghosthunter {
         . . . . .
         . . . . .
         `),
-    ]
+    ];
+
+    //% shim=ghosthunter::connectUWB
+    function connectUWB(){
+        return;
+    }
+
+    //% shim=ghosthunter::sendLoc
+    export function sendLoc(){
+        return;
+    }
+
+
     // Their translations, by index
     let msgs = ['A', 'M', 'UNDER', 'OVER', 'THIEF', 'YES', 'NO', 'WAIT', 'DANGER', 'THANK YOU']
     //% block
     export function startUp() {
-        //serial.writeString("Ready")
-        /* 
-    Used in the finale when the ghost 'speaks' through detectors
-    */
+        connectUWB();
+        radio.setGroup(99);
+        /* Used in the finale when the ghost 'speaks' through detectors */
         radio.onReceivedString(function (receivedString: string) {
             basic.showString(receivedString);
         });
     }
-
 
 
     //% block
