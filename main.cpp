@@ -2,6 +2,7 @@
 #include "pinmap.h"
 #include "serial_api.h"
 #include <cmath>
+#include "MicroBit.h"
 
 using namespace pxt;
 
@@ -12,19 +13,28 @@ namespace ghosthunter {
 	UWB Error codes
 	U10 - can't connect to UWB
 	U11 - Got nothing back
-
-
 	*/
+
+	/*
+		UART settings
+	*/
+	#define BUFFLEN 120
+	#define SERIAL_BAUD 115200
+
+
+	/* DWM bytes */
+	const char UWB_RETURN_BYTE=0x40;
+	const char UWB_LOC_BYTE=0x41;
+	const char ANCHOR_RETURN_BYTE=0x49; //73
+
 
 	//DWM code for get location (see api guide)
 	const char GET_LOC[] = {0x0c,0x00};
-	const char UWB_RETURN_BYTE = 0x40;
-	const char ANCHOR_RETURN_BYTE = 0x49;
+	
+	
 	uint32_t pos[] = {0,0,0};
 
-	#define BUFFLEN 120
-	#define SERIAL_BAUD 9600
-
+	
 	
 	/*uint_32_t get_pos(){
 		return 0;
@@ -66,19 +76,64 @@ namespace ghosthunter {
 
 	}
 
-	int parseLoc(uint8_t *RXBuffer){		
-		pos[0] = (uint32_t) RXBuffer[5] | (RXBuffer[6] << 8) | (RXBuffer[7] << 16) | (RXBuffer[8] << 24);
-		pos[1] = (uint32_t) RXBuffer[9] | (RXBuffer[10] << 8) | (RXBuffer[11] << 16) | (RXBuffer[12] << 24);
-		pos[2] = (uint32_t) RXBuffer[13] | (RXBuffer[14] << 8) | (RXBuffer[15] << 16) | (RXBuffer[16] << 24);
-		return 0;
+	/*
+	Check the beginning of the response for the correct return byte
+	and that the error code is 0.
+	-1 bad statement
+	0 all is well
+	else return DWM error code
+	*/	
+	int parseDWMReturn(uint8_t RXBuffer[], int bufferIndex){
+		if (RXBuffer[bufferIndex] == UWB_RETURN_BYTE){
+				// OK we've got a correct return
+				// Check the error code
+				if ( (sizeof(RXBuffer) /sizeof(RXBuffer[0])) > 2 && RXBuffer[bufferIndex+2] == (uint8_t)0){
+					return bufferIndex+3;
+				} else{
+					return -1;
+				}
+		}
+		return -1;
+	}
+
+	/* Fill array pos with x,y,z coordinates from a DWM1001-DEV return RXBuffer.
+	Each coordinate is 4 bytes little-endian, coming out in mm.
+
+	(From DWM1001-API-Guide)
+    Position
+    13-byte position information of the node (anchor or tag).
+    position = x, y, z, qf : bytes 0-12, position coordinates and quality factor
+    x : bytes 0-3, 32-bit integer, in millimeters
+    y : bytes 4-7, 32-bit integer, in millimeters
+    z : bytes 8-11, 32-bit integer, in millimeters
+    qf : bytes 12, 8-bit integer, position quality factor in percent
+	*/
+	int parseLoc(uint32_t pos[], uint8_t RXBuffer[], int bufferIndex){		
+		// First, check the return type byte
+		int rv = (int) RXBuffer[bufferIndex];		
+		// printf("BUF is %d and def is %d\n", rv, UWB_LOC_BYTE);
+		if (rv == UWB_LOC_BYTE){			
+			bufferIndex +=2;
+			pos[0] = (uint32_t) RXBuffer[bufferIndex] | (RXBuffer[bufferIndex+1] << 8) | (RXBuffer[bufferIndex+2] << 16) | (RXBuffer[bufferIndex+3] << 24);
+			bufferIndex +=4;
+			pos[1] = (uint32_t) RXBuffer[bufferIndex] | (RXBuffer[bufferIndex+1] << 8) | (RXBuffer[bufferIndex+2] << 16) | (RXBuffer[bufferIndex+3] << 24);
+			bufferIndex +=4;
+			pos[2] = (uint32_t) RXBuffer[bufferIndex] | (RXBuffer[bufferIndex+1] << 8) | (RXBuffer[bufferIndex+2] << 16) | (RXBuffer[bufferIndex+3] << 24);
+			return bufferIndex;	
+		}
+
+		return -1;
+		
 	}
 
 	/*
 	Find and parse any nearby anchors, add them to the pointer
 	*/
-	int parseAnchors(uint8_t *RXBuffer){
-
+	int parseAnchors(int anchors[], uint8_t *RXBuffer, int bufferIndex){
+		return 0;
 	}
+
+
 
 	/* Query the UWB for our current location, and nearby anchors */
 	//%
@@ -87,42 +142,65 @@ namespace ghosthunter {
 		uBit.serial.send((uint8_t *)GET_LOC, 2);
 		uBit.sleep(200);		
 		int waiting = -1;
+		int bufferIndex = -1;
 		// How much is waiting in the RX buffer?
     	waiting = uBit.serial.rxBufferedSize();
     	if (waiting > BUFFLEN){
 	    	uBit.panic(10);
 	    }	    
-    	if (waiting > 0){
+    	if (waiting > 0){    
+    		ManagedString total = ManagedString(waiting);
+    		uBit.display.scroll(total,100);
     		uBit.serial.read((uint8_t *)RXBuffer,waiting,ASYNC);
-			if (RXBuffer[0] == (uint8_t)UWB_RETURN_BYTE){
-				// OK we've got a correct return
-				// Check the error code
-				if (RXBuffer[2] == (uint8_t)0){
-					// error code is 0, we're ok
-	    				uBit.serial.read((uint8_t *)RXBuffer,waiting,ASYNC);
-	    				uBit.display.scroll(RXBuffer[0]);
-	    				uBit.display.scroll(RXBuffer[1]);
-	    				uBit.display.scroll(RXBuffer[2]);
-	    				uBit.display.scroll(RXBuffer[3]);
-	    				uBit.display.scroll(RXBuffer[4]);
-	    				uBit.display.scroll(RXBuffer[5]);
-
-	    			}
-	    			//uBit.display.scroll(waiting);
-			}else{
-				uBit.display.scroll("U%d",RXBuffer[2]);	
-			}
-			/*uBit.display.scroll(RXBuffer[0]);
-    		uBit.display.scroll(RXBuffer[1]);
-    		uBit.display.scroll(RXBuffer[2]);*/    		
+    		uBit.sleep(200);
+    		bufferIndex = 0;
+    		//Check the return byte and error code
+    		bufferIndex = parseDWMReturn(RXBuffer,0);
+    		if (bufferIndex > 0){    			
+    			// Get the tag's location
+    			bufferIndex = parseLoc(pos,RXBuffer,bufferIndex);
+    			if (bufferIndex > 0){
+    				int numAnchors = RXBuffer[bufferIndex+2];
+    				if (numAnchors > 0 ){
+    					//Read all anchor data
+    				}
+    				uBit.display.scroll("DONE");
+    			} else{
+    				uBit.display.scroll("ERROR DWMPARSELOC");
+    			}
+    		} else{
+    			uBit.display.scroll("ERROR DWMReturn");
+    		}
+    		
+    		/*for (int x=0;x<waiting;x++){
+    			uBit.display.scroll(RXBuffer[x],100);
+    		}*/
+    		/*
+			// Check the error code
+    		int errorCode = parseDWMReturn(*RXBuffer,0);
+    		if (errorCode == 0){
+    			if (RXBuffer[3] == UWB_LOC_BYTE){
+    				// TODO figure out errors and bubble up
+    				parseLoc(*pos,*RXBuffer,5);
+    			}
+    		}*/
+			
     	} else {
     		uBit.display.scroll("U11");
     	}
-    	
+    	//int numAnchors = RXBuffer[bufferIndex+2];
     	
     	
 	}
 
+	/**
+	Get nearest point (in mm)
+	*/
+	//%
+	uint32_t nearestReading(int range){
+		return 0;
+	}
 
+	
 
 }

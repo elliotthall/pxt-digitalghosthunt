@@ -3,6 +3,9 @@
 // % color=#333300 weight=100 icon="\uf21b"
 // block="SEEK"
 namespace ghosthunter {
+
+
+
     //telegraph
     let alphabet: string[] = []
     let morse: string[] = []
@@ -12,6 +15,9 @@ namespace ghosthunter {
     morse = [".-", "-...", "-.-.", "-..", ".", "..-.", "--.", "....", "..", ".---", "-.-", ".-..", "--", "-.", "---", ".--.", "--.-", ".-.", "...", "-", "..-", "...-", ".--", "-..-", "-.--", "--..", ".----", "..---", "...--", "....-", ".....", "-....", "--...", "---..", "----.", "-----"]
     alphabet = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
     let sep: string = ";;";
+    // Their translations, by index
+    let msgs = ['A', 'M', 'UNDER', 'OVER', 'THIEF', 'YES', 'NO', 'WAIT', 'DANGER', 'THANK YOU']
+    
     // Sprit sign
     let selected = [[0, -1]];
     let x: number = 2;
@@ -90,23 +96,19 @@ namespace ghosthunter {
         `),
     ];
 
-    //% shim=ghosthunter::connectUWB
-    function connectUWB(){
-        return;
-    }
+    /* ****************************************************************
 
-    //% shim=ghosthunter::sendLoc
-    export function sendLoc(){
-        return;
-    }
+    Startup Blocks and events
 
+    */
 
-    // Their translations, by index
-    let msgs = ['A', 'M', 'UNDER', 'OVER', 'THIEF', 'YES', 'NO', 'WAIT', 'DANGER', 'THANK YOU']
-    //% block
+     //% block
     export function startUp() {
+        // Set UART pins to 0,1 for DWM
         connectUWB();
+
         radio.setGroup(99);
+        
         /* Used in the finale when the ghost 'speaks' through detectors */
         radio.onReceivedString(function (receivedString: string) {
             basic.showString(receivedString);
@@ -114,36 +116,51 @@ namespace ghosthunter {
     }
 
 
+
+    /* ****************************************************************
+
+    SEEK functions
+
+    Main functions for each type of SEEK detector
+
+    */
+
+   
+    /* 
+
+    G Meter
+
+    v2.0 now uses UWB functions below
+
+    */
     //% block
     export function gMeter(): number {
-        return scan("G" + sep);
+        return scan(5000);
 
     }
 
+    /**
 
-    // note that Caml casing yields lower case
-    // block text with spaces
+    Ectoscope
 
+    v2.0 now uses UWB functions below
+
+    */
+   
     //% block
     export function ectoScan(): number {
-        return scan("E" + sep);
+        let result = 0;
+
+        return result;
     }
 
-    function scan(msg: string): number {
+    function scan(range: number): number {
+        let result = 0;
         if (test_mode) {
             // Return a random number so they can test
-            scan_result = Math.randomRange(0, 10)
+            result = Math.randomRange(0, 10)
         } else {
-            sendtopi(msg);
-            basic.pause(1000);
-            //let result = serial.readUntil("}");
-            let result = serial.readString()
-            if (result.length > 0 && result.indexOf("}") > 0) {
-                result = result.substr(0, result.indexOf("}"));
-                scan_result = parseInt(result);
-            } else {
-                scan_result = 0;
-            }
+            scan_result = nearestReading(range);
 
         }
         return scan_result;
@@ -301,6 +318,13 @@ namespace ghosthunter {
     }
 
 
+/* ***************************************
+
+Pi functions (Deprecated)
+Kept for backwards compatibility with Mk 1 SEEK
+
+*/
+
     function sendtopi(code: string) {
         serial.writeLine(code);
     }
@@ -329,6 +353,31 @@ namespace ghosthunter {
             picommand(msg2);
         }
     })
+
+     /* ****************************************************************
+
+    UWB functions
+
+    */
+
+    //% shim=ghosthunter::connectUWB
+    function connectUWB(){
+        return;
+    }
+
+    //% shim=ghosthunter::currentLoc
+    export function currentLoc(){
+        return;
+    }
+
+    /**
+    Nearest poi in mm 
+    */
+    //% shim=ghosthunter::nearestReading
+    function nearestReading(range:number): number{        
+        return 0;
+    }
+
 
     // Scan results (done as a listener to avoid timeout)
     /* serial.onDataReceived("}", function () {
