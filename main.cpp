@@ -22,7 +22,10 @@ namespace ghosthunter {
 	#define SERIAL_BAUD 115200
 
 
-	/* DWM bytes */
+	/* DWM bytes and settings*/
+	#define MIN_LOC_RETURN 21
+	// Maxiumum number of anchors to store
+	#define MAX_ANCHORS 10
 	const char UWB_RETURN_BYTE=0x40;
 	const char UWB_LOC_BYTE=0x41;
 	const char ANCHOR_RETURN_BYTE=0x49; //73
@@ -32,18 +35,25 @@ namespace ghosthunter {
 	const char GET_LOC[] = {0x0c,0x00};
 	
 	
+	// The tag's current x,y,z position
 	uint32_t pos[] = {0,0,0};
+	
+	//Current visible tags
+	//only including id and distance at the mometn
+	uint32_t anchors[MAX_ANCHORS][2] = {
+		{0,0}
+	};
+
+	// Current number of visible anchors
+	int currentNumAnchors = 0;
 
 	
-	
-	/*uint_32_t get_pos(){
-		return 0;
-	}*/
 
-/* From Damien P. George's micropython implementation of uart
- https://github.com/bbcmicrobit/micropython/blob/master/source/microbit/microbituart.cpp
- Manual pin set so we don't get the garbage 0x00 when serial is initialised
- */
+	
+	/* From Damien P. George's micropython implementation of uart
+ 	https://github.com/bbcmicrobit/micropython/blob/master/source/microbit/microbituart.cpp
+ 	Manual pin set so we don't get the garbage 0x00 when serial is initialised
+ 	*/
 	
 	void setUartPins(PinName p_tx,PinName p_rx){
 		serial_t serial;
@@ -64,16 +74,39 @@ namespace ghosthunter {
 	Connect to DWM1001-DEV over uart
 	Assumes tx=P0,rx=P1
 	*/
+
 	//%
 	void connectUWB(){		
     	setUartPins(MICROBIT_PIN_P0,MICROBIT_PIN_P1);
 	}
 
+	//%
 	int distance(int ax, int ay, int bx, int by){
 		int distancex = (ax - bx) * (ax - bx);
 		int distancey = (ay - by) * (ay - by);
 		return std::round(sqrt(distancex + distancey));
 
+	}
+
+	//%
+	uint32_t currentAnchorIDAt(int index){
+		if (index<currentNumAnchors){
+			return anchors[index][0];	
+		}
+		
+	}
+
+	//%
+	uint32_t currentAnchorDistanceAt(int index){
+		if (index<currentNumAnchors){
+			return anchors[index][1];	
+		}
+		
+	}
+
+	//%
+	int getCurrentNumAnchors(){
+		return currentNumAnchors;
 	}
 
 	/*
@@ -88,7 +121,7 @@ namespace ghosthunter {
 				// OK we've got a correct return
 				// Check the error code
 				if ( (sizeof(RXBuffer) /sizeof(RXBuffer[0])) > 2 && RXBuffer[bufferIndex+2] == (uint8_t)0){
-					return bufferIndex+3;
+					return bufferIndex+=3;
 				} else{
 					return -1;
 				}
@@ -119,6 +152,9 @@ namespace ghosthunter {
 			pos[1] = (uint32_t) RXBuffer[bufferIndex] | (RXBuffer[bufferIndex+1] << 8) | (RXBuffer[bufferIndex+2] << 16) | (RXBuffer[bufferIndex+3] << 24);
 			bufferIndex +=4;
 			pos[2] = (uint32_t) RXBuffer[bufferIndex] | (RXBuffer[bufferIndex+1] << 8) | (RXBuffer[bufferIndex+2] << 16) | (RXBuffer[bufferIndex+3] << 24);
+			bufferIndex +=4;
+			//Skip the quality factor
+			bufferIndex +=1;
 			return bufferIndex;	
 		}
 
@@ -128,43 +164,80 @@ namespace ghosthunter {
 
 	/*
 	Find and parse any nearby anchors, add them to the pointer
+	Using parts of dwm_loc_get from dwm_api.c
 	*/
-	int parseAnchors(int anchors[], uint8_t *RXBuffer, int bufferIndex){
-		return 0;
+	int parseAnchors(uint8_t RXBuffer[], int bufferIndex){
+		// Skip reutrn byte and length byte, goto num anchors
+		bufferIndex+=2;
+		currentNumAnchors = RXBuffer[bufferIndex];
+		uBit.display.scroll("ANC");
+		uBit.display.scroll(currentNumAnchors);
+		uint8_t i,j; 
+    	if (currentNumAnchors > 0 ){
+    		//Read all anchor data
+    		bufferIndex += 1; // goto data    		
+    		for (i=0;i<currentNumAnchors;i++){
+    			if (i < MAX_ANCHORS){    				
+		    		// anchor ID
+            		anchors[i][0] = 0;
+            		for (j = 0; j < 2; j++)
+            		{
+               			anchors[i][0] += ((uint64_t)RXBuffer[bufferIndex++])<<(j*8);
+            		}
+            		// anchor distance
+            		anchors[i][1] = 0;
+            		for (j = 0; j < 4; j++)
+            		{
+               			anchors[i][1] += ((uint32_t)RXBuffer[bufferIndex++])<<(j*8);
+            		}
+		            // Skip the quality factor
+		            bufferIndex +=1;
+		            //Skip the anchor location for now
+		            // We could add it later if useful
+		            bufferIndex +=13;
+		        }else{
+		        	//Too many anchors, burn off the others
+		        	// TODO add to log?
+		        	bufferIndex+=20;
+
+		        }
+	        }
+	    					
+    	}		
+		return bufferIndex;
 	}
 
-
-
-	/* Query the UWB for our current location, and nearby anchors */
+	
+	/* Query the UWB for our current location, and nearby anchors */	
 	//%
-	void currentLoc(){
+	int currentLoc(){
     	uint8_t RXBuffer[BUFFLEN];
 		uBit.serial.send((uint8_t *)GET_LOC, 2);
 		uBit.sleep(200);		
 		int waiting = -1;
-		int bufferIndex = -1;
+		int bufferIndex = -1;		
 		// How much is waiting in the RX buffer?
     	waiting = uBit.serial.rxBufferedSize();
     	if (waiting > BUFFLEN){
 	    	uBit.panic(10);
 	    }	    
-    	if (waiting > 0){    
-    		ManagedString total = ManagedString(waiting);
-    		uBit.display.scroll(total,100);
+    	if (waiting > 0){     		
     		uBit.serial.read((uint8_t *)RXBuffer,waiting,ASYNC);
     		uBit.sleep(200);
     		bufferIndex = 0;
+    		/*for (int x=0;x<waiting;x++){
+    			uBit.display.scroll(RXBuffer[x],100);
+    		}*/
     		//Check the return byte and error code
-    		bufferIndex = parseDWMReturn(RXBuffer,0);
-    		if (bufferIndex > 0){    			
+    		bufferIndex = parseDWMReturn(RXBuffer,bufferIndex);    		
+    		uBit.display.scroll(bufferIndex);
+    		if (bufferIndex > 0){ // && waiting >= MIN_LOC_RETURN    			
     			// Get the tag's location
     			bufferIndex = parseLoc(pos,RXBuffer,bufferIndex);
+    			uBit.display.scroll("PL");
+    			uBit.display.scroll(bufferIndex,100);
     			if (bufferIndex > 0){
-    				int numAnchors = RXBuffer[bufferIndex+2];
-    				if (numAnchors > 0 ){
-    					//Read all anchor data
-    				}
-    				uBit.display.scroll("DONE");
+    				bufferIndex = parseAnchors(RXBuffer, bufferIndex);    				
     			} else{
     				uBit.display.scroll("ERROR DWMPARSELOC");
     			}
@@ -189,18 +262,11 @@ namespace ghosthunter {
     		uBit.display.scroll("U11");
     	}
     	//int numAnchors = RXBuffer[bufferIndex+2];
+    	return bufferIndex;
     	
-    	
-	}
-
-	/**
-	Get nearest point (in mm)
-	*/
-	//%
-	uint32_t nearestReading(int range){
-		return 0;
 	}
 
 	
+
 
 }

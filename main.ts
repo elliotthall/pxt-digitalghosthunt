@@ -4,7 +4,17 @@
 // block="SEEK"
 namespace ghosthunter {
 
+    class Anchor {
+        addr:number;
+        distance:number;
 
+        constructor(addr:number,distance:number) {
+            this.addr=addr;
+            this.distance=distance;
+        }
+    }
+
+    
 
     //telegraph
     let alphabet: string[] = []
@@ -160,7 +170,9 @@ namespace ghosthunter {
             // Return a random number so they can test
             result = Math.randomRange(0, 10)
         } else {
-            scan_result = nearestReading(range);
+            // REFACTOR
+            let nearest = nearestAnchor();
+            return 0;
 
         }
         return scan_result;
@@ -317,6 +329,60 @@ namespace ghosthunter {
         return msg;
     }
 
+/* ****************************************************************
+
+    UWB functions
+
+    */
+
+    //% shim=ghosthunter::getCurrentNumAnchors
+    export function getCurrentNumAnchors(): number {
+        return 0;
+    }
+
+    //% shim=ghosthunter::currentAnchorIDAt
+    function currentAnchorIDAt(index:number):number{
+        return 0;
+        
+    }
+
+    //% shim=ghosthunter::currentAnchorDistanceAt
+    function currentAnchorDistanceAt(index:number):number{
+        return 0;        
+    }
+    
+    //% shim=ghosthunter::currentLoc
+    export function currentLoc():number {
+        return 0;
+    }
+
+    /**
+    Nearest poi in mm 
+    */    
+    export function nearestAnchor(): Anchor{        
+        let anchors = [];        
+        let numAnchors = getCurrentNumAnchors();
+        if (numAnchors > 0){
+            for (let x=0;x<numAnchors;x++){
+                anchors[x] = new Anchor(currentAnchorIDAt(x),currentAnchorDistanceAt(x));
+            }
+        
+            anchors.sort(function (a, b) {
+              return a.distance - b.distance;
+            });
+            return anchors[0];
+        }
+        return new Anchor(0,0);
+    }
+
+
+
+
+
+
+     
+
+    
 
 /* ***************************************
 
@@ -354,30 +420,8 @@ Kept for backwards compatibility with Mk 1 SEEK
         }
     })
 
-     /* ****************************************************************
 
-    UWB functions
-
-    */
-
-    //% shim=ghosthunter::connectUWB
-    function connectUWB(){
-        return;
-    }
-
-    //% shim=ghosthunter::currentLoc
-    export function currentLoc(){
-        return;
-    }
-
-    /**
-    Nearest poi in mm 
-    */
-    //% shim=ghosthunter::nearestReading
-    function nearestReading(range:number): number{        
-        return 0;
-    }
-
+    
 
     // Scan results (done as a listener to avoid timeout)
     /* serial.onDataReceived("}", function () {
