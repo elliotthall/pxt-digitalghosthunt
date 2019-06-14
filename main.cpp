@@ -6,7 +6,7 @@
 
 using namespace pxt;
 
-namespace ghosthunter {
+namespace digitalghosthunt {
 
 	/**
 

@@ -16,7 +16,7 @@ const enum SEEKType{
         COORDINATE,
     }
 
-namespace ghosthunter {
+namespace digitalghosthunt {
 
     
 
@@ -78,7 +78,7 @@ namespace ghosthunter {
 
     }*/
 
-    /** One UWB-rigged room in a story
+    /** One UWB-rigged 'room' in a story, really a single UWB network
     This will contain all UWB interaction points
     Each room is identified by the id of the initator anchor
     */
@@ -97,8 +97,7 @@ namespace ghosthunter {
         @param device - type of SEEK device so we can filter points
         @return the nearest detectable point
         */
-
-        nearestPoint(device:SEEKType):SpookyPoint {
+        nearestPoint(device:SEEKType):VisiblePoint {
             let visiblePoints:VisiblePoint[];
             let d:number=-1;
             for (let x:number = 0;x<this.points.length;x++){
@@ -122,11 +121,15 @@ namespace ghosthunter {
                       }
             
                 }
-            }
+            }            
             
-            // Find the nearest AR point to our position
             // Return whichever is nearest
-
+            if (visiblePoints.length > 0){
+                visiblePoints.sort(function (a, b) {
+                      return a.distance - b.distance;
+                });   
+                return visiblePoints[0];
+            }
             //If nothing, return null
             return null;
         }
@@ -139,10 +142,43 @@ namespace ghosthunter {
     for a SEEK, as well as spirit signs
     */
     class Story  {
-
+        id:number;
+        rooms:Room[];
         
-        constructor() {
-            
+        constructor(id:number,rooms:Room[]) {
+            this.id = id;
+            this.rooms = rooms;
+        }
+
+        /** Get a room by its anchor id
+        Used for finding current room device is in
+        */
+        roomById(id:number):Room{
+            for (let x:number = 0;x<this.rooms.length;x++){
+                if (id == this.rooms[x].id){
+                    return this.rooms[x];
+                }
+            }
+            return null;
+        }
+
+        /** Pass a set of visible anchors
+        to find what room they belong to
+        NOTE: If anchors from multiple rooms visible, it will return the first one
+        if this is a problem it will need to be refactored (but it shouldn't be)
+        @param anchors we can see
+        @return the room the anchors belong to
+        */
+        roomByAnchors(anchors:Anchor[]):Room{
+            if (anchors!=null && anchors.length >0 && this.rooms !=null && this.rooms.length >0){
+                for (let x:number = 0;x<anchors.length;x++){
+                    let room:Room = this.roomById(anchors[x].addr);
+                    if (room != null){
+                        return room;
+                    }
+                }
+            }
+            return null;
         }
     }
 
@@ -337,7 +373,7 @@ namespace ghosthunter {
     */
     //% block
     export function gMeter(): number {
-        return scan(gmeterRange);
+        return scan(gmeterRange, SEEKType.GMETER);
     }
 
     /**
@@ -350,20 +386,32 @@ namespace ghosthunter {
    
     //% block
     export function ectoScan(): number {
-        return scan(ectoScopeRange);
+        return scan(ectoScopeRange, SEEKType.ECTOSCOPE);
     }
 
     /** Find spooky objects nearby.
+    A scan is done in the following steps:
+    1. Get all visible anchors
+    2. find what Room we're in using anchor ids
+    3. return all SpookyPoints from that room
+    4. Find all visible points
+    5. filter by device type
+    6. Get their distances (from the uwb if an anchor, compute if a coordinate)
+    7. sort to find nearest
+    8. return as a number 0-10 as a percentage of device range
+
     @param range - Device's range
+    @param device - which SEEK Device type is scanning
     @return distance to nearest object
     */
-    function scan(range: number): number {
+    function scan(range: number, device:SEEKType): number {
         let result = 0;
         if (test_mode) {
             // Return a random number so they can test
             result = Math.randomRange(0, 10);
         } else {
-            // REFACTOR
+            // 1. Get all visible anchors
+            let visibleAnchors = getAnchors();
             let nearest:Anchor = nearestAnchor();
             let distance = 0;
             if (nearest != null){
@@ -531,33 +579,33 @@ namespace ghosthunter {
 
     */
 
-    //% shim=ghosthunter::getCurrentNumAnchors
+    //% shim=digitalghosthunt::getCurrentNumAnchors
     export function getCurrentNumAnchors(): number {
         return 0;
     }
 
-    //% shim=ghosthunter::currentAnchorIDAt
+    //% shim=digitalghosthunt::currentAnchorIDAt
     function currentAnchorIDAt(index:number):number{
         return 0;
         
     }
 
-    //% shim=ghosthunter::currentAnchorDistanceAt
+    //% shim=digitalghosthunt::currentAnchorDistanceAt
     function currentAnchorDistanceAt(index:number):number{
         return 0;        
     }
 
-    //% shim=ghosthunter::AnchorDistanceByAddr
+    //% shim=digitalghosthunt::AnchorDistanceByAddr
     function AnchorDistanceByAddr(addr:number){
         return -1;
     }
     
-    //% shim=ghosthunter::currentLoc
+    //% shim=digitalghosthunt::currentLoc
     export function currentLoc():number {
         return 0;
     }
 
-    //% shim=ghosthunter::distance
+    //% shim=digitalghosthunt::distance
     export function distance(ax:number, ay:number, bx:number, by:number):number{
         return -1;
     }
