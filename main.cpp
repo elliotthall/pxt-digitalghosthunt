@@ -11,9 +11,24 @@ namespace ghosthunter {
 	/**
 
 	UWB Error codes
-	U10 - can't connect to UWB
-	U11 - Got nothing back
+	(For reserved error codes see https://microbit.org/guide/hardware/error-codes/)
+	
+	
 	*/
+	#define ERROR_NO_UWB 55 //can't connect to UWB
+	#define ERROR_LOC_REPLY_EMPTY 56 //Got nothing back from GET_LOC
+	// Not enough bytes in response (should be 13) for pos
+	#define ERROR_LOC_NO_POS 57
+	#define ERROR_LOC_NO_POS 58 // Missing Anchor byte report
+	#define ERROR_LOC_BAD_Anchor 59 // Missing/malformed Anchor byte report
+	#define ERROR_BUFFER_OVERRUN 60 // Response is too big for default buffer
+
+	// Running mode, 0 is default, 1 is debug
+	short mode = 0;
+
+	void setMode(short m){
+		mode=m;
+	}
 
 	/*
 		UART settings
@@ -29,8 +44,6 @@ namespace ghosthunter {
 	const char UWB_RETURN_BYTE=0x40;
 	const char UWB_LOC_BYTE=0x41;
 	const char ANCHOR_RETURN_BYTE=0x49; //73
-
-
 	//DWM code for get location (see api guide)
 	const char GET_LOC[] = {0x0c,0x00};
 	
@@ -105,6 +118,16 @@ namespace ghosthunter {
 	}
 
 	//%
+	uint32_t AnchorDistanceByAddr(uint64_t addr){
+		for (uint8_t x=0;x<currentNumAnchors;x++){
+			if (anchors[x][0] == addr){
+				return anchors[x][1];
+			}
+		}
+		return -1;		
+	}
+
+	//%
 	int getCurrentNumAnchors(){
 		return currentNumAnchors;
 	}
@@ -170,8 +193,8 @@ namespace ghosthunter {
 		// Skip reutrn byte and length byte, goto num anchors
 		bufferIndex+=2;
 		currentNumAnchors = RXBuffer[bufferIndex];
-		uBit.display.scroll("ANC");
-		uBit.display.scroll(currentNumAnchors);
+		//uBit.display.scroll("ANC");
+		//uBit.display.scroll(currentNumAnchors);
 		uint8_t i,j; 
     	if (currentNumAnchors > 0 ){
     		//Read all anchor data
@@ -211,58 +234,70 @@ namespace ghosthunter {
 	/* Query the UWB for our current location, and nearby anchors */	
 	//%
 	int currentLoc(){
-    	uint8_t RXBuffer[BUFFLEN];
-		uBit.serial.send((uint8_t *)GET_LOC, 2);
-		uBit.sleep(200);		
-		int waiting = -1;
-		int bufferIndex = -1;		
-		// How much is waiting in the RX buffer?
-    	waiting = uBit.serial.rxBufferedSize();
-    	if (waiting > BUFFLEN){
-	    	uBit.panic(10);
-	    }	    
-    	if (waiting > 0){     		
-    		uBit.serial.read((uint8_t *)RXBuffer,waiting,ASYNC);
-    		uBit.sleep(200);
-    		bufferIndex = 0;
-    		/*for (int x=0;x<waiting;x++){
-    			uBit.display.scroll(RXBuffer[x],100);
-    		}*/
-    		//Check the return byte and error code
-    		bufferIndex = parseDWMReturn(RXBuffer,bufferIndex);    		
-    		uBit.display.scroll(bufferIndex);
-    		if (bufferIndex > 0){ // && waiting >= MIN_LOC_RETURN    			
-    			// Get the tag's location
-    			bufferIndex = parseLoc(pos,RXBuffer,bufferIndex);
-    			uBit.display.scroll("PL");
-    			uBit.display.scroll(bufferIndex,100);
-    			if (bufferIndex > 0){
-    				bufferIndex = parseAnchors(RXBuffer, bufferIndex);    				
-    			} else{
-    				uBit.display.scroll("ERROR DWMPARSELOC");
-    			}
-    		} else{
-    			uBit.display.scroll("ERROR DWMReturn");
-    		}
-    		
-    		/*for (int x=0;x<waiting;x++){
-    			uBit.display.scroll(RXBuffer[x],100);
-    		}*/
-    		/*
-			// Check the error code
-    		int errorCode = parseDWMReturn(*RXBuffer,0);
-    		if (errorCode == 0){
-    			if (RXBuffer[3] == UWB_LOC_BYTE){
-    				// TODO figure out errors and bubble up
-    				parseLoc(*pos,*RXBuffer,5);
-    			}
-    		}*/
-			
-    	} else {
-    		uBit.display.scroll("U11");
-    	}
-    	//int numAnchors = RXBuffer[bufferIndex+2];
-    	return bufferIndex;
+		if (mode == 0){
+	    	uint8_t RXBuffer[BUFFLEN];
+			uBit.serial.send((uint8_t *)GET_LOC, 2);
+			uBit.sleep(200);		
+			int waiting = -1;
+			int bufferIndex = -1;		
+			// How much is waiting in the RX buffer?
+	    	waiting = uBit.serial.rxBufferedSize();
+	    	if (waiting > BUFFLEN){
+		    	uBit.panic(10);
+		    }	    
+	    	if (waiting > 0){     		
+	    		uBit.serial.read((uint8_t *)RXBuffer,waiting,ASYNC);
+	    		uBit.sleep(200);
+	    		bufferIndex = 0;
+	    		/*for (int x=0;x<waiting;x++){
+	    			uBit.display.scroll(RXBuffer[x],100);
+	    		}*/
+	    		//Check the return byte and error code
+	    		bufferIndex = parseDWMReturn(RXBuffer,bufferIndex);    		
+	    		//uBit.display.scroll(bufferIndex);
+	    		if (bufferIndex > 0){ // && waiting >= MIN_LOC_RETURN    			
+	    			// Get the tag's location
+	    			bufferIndex = parseLoc(pos,RXBuffer,bufferIndex);
+	    			//uBit.display.scroll("PL");
+	    			//uBit.display.scroll(bufferIndex,100);
+	    			if (bufferIndex > 0){
+	    				bufferIndex = parseAnchors(RXBuffer, bufferIndex);    				
+	    			} else{
+	    				uBit.display.scroll("ERROR DWMPARSELOC");
+	    			}
+	    		} else{
+	    			uBit.display.scroll("ERROR DWMReturn");
+	    		}
+	    		
+	    		/*for (int x=0;x<waiting;x++){
+	    			uBit.display.scroll(RXBuffer[x],100);
+	    		}*/
+	    		/*
+				// Check the error code
+	    		int errorCode = parseDWMReturn(*RXBuffer,0);
+	    		if (errorCode == 0){
+	    			if (RXBuffer[3] == UWB_LOC_BYTE){
+	    				// TODO figure out errors and bubble up
+	    				parseLoc(*pos,*RXBuffer,5);
+	    			}
+	    		}*/
+				
+	    	} else {
+	    		uBit.display.scroll("U12");
+	    	}
+	    	//int numAnchors = RXBuffer[bufferIndex+2];
+	    	return bufferIndex;
+	    } else if (mode ==1){
+	    	//Set test data and return correct read
+	    	pos[0] = 0;
+	    	pos[1] = 0;
+	    	pos[2] = 0;
+	    	currentNumAnchors = 1;
+	    	anchors[0][0] = 1234;
+	    	anchors[0][1] = 3334;
+	    	return 44;
+
+	    }
     	
 	}
 
