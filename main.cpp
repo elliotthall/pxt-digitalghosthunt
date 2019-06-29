@@ -52,7 +52,7 @@ namespace digitalghosthunt {
 	uint32_t pos[] = {0,0,0};
 	
 	//Current visible tags
-	//only including id and distance at the mometn
+	//only including id and distance at the moment
 	uint32_t anchors[MAX_ANCHORS][2] = {
 		{0,0}
 	};
@@ -97,8 +97,25 @@ namespace digitalghosthunt {
 	int distance(int ax, int ay, int bx, int by){
 		int distancex = (ax - bx) * (ax - bx);
 		int distancey = (ay - by) * (ay - by);
-		return std::round(sqrt(distancex + distancey));
+		return sqrt(distancex + distancey);
 
+	}
+
+	//uint32_t pos[] = {0,0,0};
+
+	//%
+	uint32_t currentPos_x(){
+		return pos[0];
+	}
+
+	//%
+	uint32_t currentPos_y(){
+		return pos[1];
+	}
+
+	//%
+	uint32_t currentPos_z(){
+		return pos[2];
 	}
 
 	//%

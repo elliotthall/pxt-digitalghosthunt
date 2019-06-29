@@ -18,17 +18,22 @@ const enum SEEKType{
 
 namespace digitalghosthunt {
 
-    
+   
 
+    /* ************************************************
+        Story classes
+    */
 
     /** A point of spooky interaction
     This could be a source of ghostly waves
     or part of an ectoscope
     Can be a point or a circle
     */
-    class SpookyPoint{
-        //ID of point
+    export class SpookyPoint{
+        //ID of point, 
         id:number;
+        // if anchor
+        addr:number;
         // Coordinates if AR point
         x:number;
         y:number;
@@ -37,23 +42,32 @@ namespace digitalghosthunt {
 
         radius:number; // 0 if point
         // An anchor or a software point in AR space
-        type:UWBType;
+        type:number;
         // Which device can detect this point
-        device:SEEKType;
+        device:number;
 
-        constructor(id:number,x:number,y:number,z:number,radius:number,type:UWBType,device:SEEKType) {
+        // Optional variables to make these active in particular scenes
+        // or acts
+        act:number;
+        scene:number;
+
+        constructor(id:number,addr:number,x:number,y:number,z:number,radius:number,type:number,trail_id:number,device:number) {
             this.id = id;
+            this.addr = addr;
             this.x = x;
             this.y = y;
             this.z = z;
             this.radius = radius;
             this.type = type;
             this.device = device;
+            this.trail_id = trail_id;
+            this.act = -1;
+            this.scene = -1;
         }
 
     }
 
-    class VisiblePoint{
+    export class VisiblePoint{
         point:SpookyPoint;
         distance:number;
 
@@ -64,126 +78,59 @@ namespace digitalghosthunt {
     }
 
     /** A single contiguous ecto trail 
-
-    class EctoTrail {
+    NOTE: Must be constructed node by node
+    e.g A-B-C to define shape
+    */
+    export class EctoTrail {
 
         //ID of trail
         id:number;
         
+        //The width of the ectoplasmic line we're drawing
+        // uniform on the whole trail for sanity
+        width:number;
         points: SpookyPoint[];
         
-        constructor(points: SpookyPoint[]) {
+        constructor(id:number, points: SpookyPoint[],width:number) {
+            this.id=id;
             this.points = points;
+            this.width = width;
         }
 
-    }*/
+    }
 
     /** One UWB-rigged 'room' in a story, really a single UWB network
     This will contain all UWB interaction points
     Each room is identified by the id of the initator anchor
     */
-    class Room {
+    export class Room {
         // This is the id of the initiator
-        id:number;        
-        points: SpookyPoint[];
+        public id:number;        
+        public points: SpookyPoint[];
 
         constructor(id:number,points: SpookyPoint[]){
             this.id = id;
             this.points = points;
         }
 
-        /** Find the nearest spooky thing detectable by this device
-        Could be an anchor or AR Coordinate
-        @param device - type of SEEK device so we can filter points
-        @return the nearest detectable point
-        */
-        nearestPoint(device:SEEKType):VisiblePoint {
-            let visiblePoints:VisiblePoint[];
-            let d:number=-1;
-            for (let x:number = 0;x<this.points.length;x++){
-                if (device == this.points[x].device){
-                    if (this.points[x].type == UWBType.ANCHOR){
-                      // Get the anchor's distance, if it's visible
-                      d = AnchorDistanceByAddr(this.points[x].id);                      
-                    }else{
-                      d = distance(x, y, this.points[x].x, this.points[x].y);                      
-                    }
-                    if (d>=0){
-                           // Subtract the radius
-                           if (this.points[x].radius > 0){
-                               d -= this.points[x].radius;
-                               if (d<0){
-                                   //Minimum zero
-                                   d=0;
-                               }
-                           }
-                          visiblePoints.push(new VisiblePoint(this.points[x],d));
-                      }
-            
-                }
-            }            
-            
-            // Return whichever is nearest
-            if (visiblePoints.length > 0){
-                visiblePoints.sort(function (a, b) {
-                      return a.distance - b.distance;
-                });   
-                return visiblePoints[0];
-            }
-            //If nothing, return null
-            return null;
-        }
-
     }
 
-    /**
-    This is a container class for a show
-    It contains all the discoverable points
-    for a SEEK, as well as spirit signs
-    */
-    class Story  {
-        id:number;
-        rooms:Room[];
-        
-        constructor(id:number,rooms:Room[]) {
-            this.id = id;
-            this.rooms = rooms;
-        }
-
-        /** Get a room by its anchor id
+    /** Get a room by its anchor id
         Used for finding current room device is in
         */
-        roomById(id:number):Room{
-            for (let x:number = 0;x<this.rooms.length;x++){
-                if (id == this.rooms[x].id){
-                    return this.rooms[x];
+    function roomById(id:number, rooms:Room[]):Room{
+            for (let x:number = 0;x<rooms.length;x++){
+                if (id == rooms[x].id){
+                    return rooms[x];
                 }
             }
             return null;
         }
 
-        /** Pass a set of visible anchors
-        to find what room they belong to
-        NOTE: If anchors from multiple rooms visible, it will return the first one
-        if this is a problem it will need to be refactored (but it shouldn't be)
-        @param anchors we can see
-        @return the room the anchors belong to
-        */
-        roomByAnchors(anchors:Anchor[]):Room{
-            if (anchors!=null && anchors.length >0 && this.rooms !=null && this.rooms.length >0){
-                for (let x:number = 0;x<anchors.length;x++){
-                    let room:Room = this.roomById(anchors[x].addr);
-                    if (room != null){
-                        return room;
-                    }
-                }
-            }
-            return null;
-        }
-    }
-
+        
 
  
+
 
     class Anchor {
         addr:number;
@@ -210,8 +157,6 @@ namespace digitalghosthunt {
     const RadioSeparator:string = "::";
     const SEEKGroup:number = 99;
 
-
-    
     /* SEEK presets and variable, by device */
 
     //GMeter and Ectoscope
@@ -223,8 +168,13 @@ namespace digitalghosthunt {
     const alphabet: string[] = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
     const morse: string[] = [".-", "-...", "-.-.", "-..", ".", "..-.", "--.", "....", "..", ".---", "-.-", ".-..", "--", "-.", "---", ".--.", "--.-", ".-.", "...", "-", "..-", "...-", ".--", "-..-", "-.--", "--..", ".----", "..---", "...--", "....-", ".....", "-....", "--...", "---..", "----.", "-----"];
     
-    // Toggle test version so students can use it
-    export let test_mode = false;
+    /*
+     Toggle test version so students can use it without UWB and for testing
+     0 = normal mode
+     1 = simulation ready testing 
+     2 = functional testing (for testing stories)
+     */
+    export let test_mode:number = 0;
     let sep: string = ";;";
     // Their translations, by index
     let msgs = ['A', 'M', 'UNDER', 'OVER', 'THIEF', 'YES', 'NO', 'WAIT', 'DANGER', 'THANK YOU']
@@ -355,6 +305,8 @@ namespace digitalghosthunt {
 
 
 
+
+
     /* ****************************************************************
 
     SEEK functions
@@ -367,59 +319,175 @@ namespace digitalghosthunt {
     /** 
 
     G Meter
-
     v2.0 now uses UWB functions below
-
+    if nearest point is in range, 
+                    //    return as a number 0-10 as a percentage of device range
     */
     //% block
-    export function gMeter(): number {
-        return scan(gmeterRange, SEEKType.GMETER);
+    export function gMeter(rooms:Room[]): number {        
+        let visiblePoints:VisiblePoint[]= scan(currentPos_x(),currentPos_y(), SEEKType.GMETER, rooms);
+        if (visiblePoints != null && visiblePoints.length > 0){
+                    
+                    if (visiblePoints[0].distance <= gmeterRange){
+                       return Math.round((gmeterRange-visiblePoints[0].distance)/gmeterRange*10);
+                    }
+        }
+        return 0;
     }
+
+
+    // Adapted from: https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment
+    function sqr(x:number) { return x * x }    
+    function dist2(vx:number,vy:number, wx:number,wy:number) { return sqr(vx - wx) + sqr(vy - wy) }
+    function distToSegmentSquared(p_x:number,p_y:number, v:SpookyPoint, w:SpookyPoint) {
+      let l2 = dist2(v.x,v.y,w.x,w.y);
+      if (l2 == 0) return dist2(p_x,p_y,v.x,v.y);
+      let t = ((p_x - v.x) * (w.x - v.x) + (p_y - v.y) * (w.y - v.y)) / l2;
+      t = Math.max(0, Math.min(1, t));
+      return dist2(p_x,p_y,(v.x + t * (w.x - v.x)),(v.y + t * (w.y - v.y)) );
+    }
+    export function distToSegment(p_x:number,p_y:number, v:SpookyPoint, w:SpookyPoint) { return Math.sqrt(distToSegmentSquared(p_x,p_y, v, w)); }
 
     /**
 
     Ectoscope
-
+    Take visible points and find the nearest trail, and its distance
     v2.0 now uses UWB functions below
 
     */
    
     //% block
-    export function ectoScan(): number {
-        return scan(ectoScopeRange, SEEKType.ECTOSCOPE);
+    export function ectoScan(rooms:Room[],trails:EctoTrail[]): number {
+        let x:number = 0;
+        let visiblePoints:VisiblePoint[]= scan(currentPos_x(),currentPos_y(), SEEKType.ECTOSCOPE, rooms);
+        if (visiblePoints != null && visiblePoints.length > 0){
+            // Get the trail the nearest point belongs to
+            if (visiblePoints[0].point.trail_id >0){                
+                let trail:EctoTrail = null;
+                if (trails != null && trails.length > 0){                    
+                    for (x=0;x<trails.length;x++){
+                        if (trails[x].id == visiblePoints[0].point.trail_id){
+                            trail = trails[x];                            
+                            break;
+                        }
+                    }
+                }
+                if (trail !=null){
+                    //Test the part of the trail next to and behind
+                    // the node to find the shortest distance
+                    let distances:number[] = [visiblePoints[0].distance];
+                    let d:number = 0;
+                    for (x=0;x<trail.points.length;x++){
+                        if (trail.points[x].id == visiblePoints[0].point.id){
+                            // In front
+                            if (x+1<trail.points.length){
+                                d = distToSegment(currentPos_x(),currentPos_y(),trail.points[x],trail.points[x+1])                                
+                                distances.push(d);                                
+                            }
+                            // Behind    
+                            if (x-1>=0){
+                                d = distToSegment(currentPos_x(),currentPos_y(),trail.points[x],trail.points[x-1])                                
+                                distances.push(d);
+                            }
+                            
+                        }
+                    }
+
+                    /*for (x=0;x<trail.points.length;x++){
+                        if (x+1<trail.points.length){
+                            let 
+                        }
+                    }*/
+                    if (distances !=null && distances.length >0){
+                        distances.sort();
+                        return Math.round((ectoScopeRange-(distances[0]-trail.width))/ectoScopeRange*10)
+                        
+                    }
+                }
+            }
+        }
+        return 0;
     }
 
     /** Find spooky objects nearby.
     A scan is done in the following steps:
     1. Get all visible anchors
-    2. find what Room we're in using anchor ids
-    3. return all SpookyPoints from that room
-    4. Find all visible points
-    5. filter by device type
-    6. Get their distances (from the uwb if an anchor, compute if a coordinate)
-    7. sort to find nearest
-    8. return as a number 0-10 as a percentage of device range
+    2. find what Room we're in using anchor ids    
+    3. Find all visible points (filtered by device type) in that room, sorted by distance
+    4. return visible points
+    TODO: Refactor to make more general
 
-    @param range - Device's range
+    
     @param device - which SEEK Device type is scanning
+    @param rooms - rooms in the story where we might be scanning
     @return distance to nearest object
     */
-    function scan(range: number, device:SEEKType): number {
+    function scan(pos_x:number, pos_y:number, device:number, rooms:Room[]): VisiblePoint[] {
         let result = 0;
-        if (test_mode) {
+        let x =0;
+        let visiblePoints:VisiblePoint[] = null;
+        if (test_mode == 1) {
             // Return a random number so they can test
             result = Math.randomRange(0, 10);
         } else {
-            // 1. Get all visible anchors
-            let visibleAnchors = getAnchors();
-            let nearest:Anchor = nearestAnchor();
-            let distance = 0;
-            if (nearest != null){
-                distance = nearest.distance
+            // 1. Get all visible anchors            
+            let visibleAnchors:Anchor[] = getAnchors();
+            // 2. find what Room we're in using anchor ids
+            if (visibleAnchors!=null && visibleAnchors.length >0 && rooms !=null && rooms.length >0){
+                result =rooms.length;
+                let room = null;
+                for (x = 0;x<rooms.length;x++){
+                    for (let p:number = 0;x<rooms[x].points.length;x++){
+                            if (rooms[x].points[p].addr == visibleAnchors[0].addr){
+                                room = rooms[x];
+                                break;
+                            }
+                        }
+                }
+                if (room !=null){
+                    // 3. Find all visible points (filtered by device type) in that room
+                    let d:number = 0;
+                    let vp:VisiblePoint = null;
+                    for (x = 0;x<room.points.length;x++){                        
+                        if (room.points[x].device == device){                            
+                            if (room.points[x].type == UWBType.ANCHOR){
+                              // Get the anchor's distance, if it's visible
+                              for (let a:number =0; a< visibleAnchors.length;a++){
+                                  if (room.points[x].addr == visibleAnchors[a].addr){
+                                      d = visibleAnchors[a].distance;
+                                  }
+                              }
+                            } else{
+                                //TODO TEST THIS WITH REAL GRID !!!!!
+                              d = Math.round(distance(pos_x, pos_y, room.points[x].x, room.points[x].y));                      
+                            }                              
+                            if (d>=0){
+                               // Subtract the radius
+                                   if (room.points[x].radius > 0){
+                                       d -= room.points[x].radius;
+                                       if (d<0){
+                                           //Minimum zero
+                                           d=0;
+                                       }
+                                   }
+                                   
+                                   vp = new VisiblePoint(room.points[x],d) 
+                                   if (visiblePoints == null){
+                                       visiblePoints = [vp]
+                                   }
+                                   visiblePoints.push(vp);                                   
+                                
+                            }
+                        }                          
+                        
+                    }
+                }
             }
-            result = Math.round((range-distance)/range*10);
+            
+           
+            
         }
-        return result;
+        return visiblePoints;
     }
 
     //% block="transmit|message %msg"
@@ -605,6 +673,21 @@ namespace digitalghosthunt {
         return 0;
     }
 
+    //% shim=digitalghosthunt::currentPos_x
+    export function currentPos_x(){
+        return 0;
+    }
+
+    //% shim=digitalghosthunt::currentPos_y
+    export function currentPos_y(){
+        return 0;
+    }
+
+    //% shim=digitalghosthunt::currentPos_z
+    export function currentPos_z(){
+        return 0;
+    }
+
     //% shim=digitalghosthunt::distance
     export function distance(ax:number, ay:number, bx:number, by:number):number{
         return -1;
@@ -619,14 +702,13 @@ namespace digitalghosthunt {
     @return nearest anchor that is visible
     */    
     export function nearestAnchor(): Anchor{   
-        let anchors:Anchor[] = getAnchors();
+        let anchors:Anchor[] = getAnchors();        
         if (anchors.length > 0){
-            anchors.sort(function (a, b) {
-                  return a.distance - b.distance;
-            });            
             return anchors[0];
+        } else{
+            return new Anchor(0,0);    
         }
-        return new Anchor(0,0);        
+        
     }
     
     /** 
@@ -640,6 +722,12 @@ namespace digitalghosthunt {
                 anchors[x] = new Anchor(currentAnchorIDAt(x),currentAnchorDistanceAt(x));
             }       
             
+        }
+        // Sort by distance
+        if (anchors.length > 0){
+            anchors.sort(function (a, b) {
+                  return a.distance - b.distance;
+            });                        
         }
         return anchors;
     }
@@ -659,14 +747,12 @@ Pi functions (Deprecated)
 Kept for backwards compatibility with Mk 1 SEEK
 
 */
-
+/*
     function sendtopi(code: string) {
         serial.writeLine(code);
     }
 
-    /**
-     * Receive a command from the pi and parse it
-     */
+    
     function picommand(command_string: string) {
         let command: string = command_string.substr(0, command_string.indexOf("::"));
         let value: string = command_string.substr(command_string.indexOf("::") + 2);
@@ -690,7 +776,7 @@ Kept for backwards compatibility with Mk 1 SEEK
     })
 
 
-    
+    */
 
     // Scan results (done as a listener to avoid timeout)
     /* serial.onDataReceived("}", function () {
