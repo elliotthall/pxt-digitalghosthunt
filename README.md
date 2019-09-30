@@ -2,7 +2,7 @@
 ## SEEK Ghost Detector Core Library Mk 2
 ### Version 1.0
 
-This library is part of [The Digital Ghost Hunt](digitalghosthunt.com) an AHRC-funded project in coding education and Immersive theatre.  If you have no idea what that is, visit our website first.  The rest will make more sense.
+This library is part of [The Digital Ghost Hunt](https://digitalghosthunt.com) an AHRC-funded project in coding education and Immersive theatre.  If you have no idea what that is, visit our website first.  The rest will make more sense.
 
 This repo contains the code for the SEEK Ghost Detector Mark 2, a MORPH agent's best friend.  The detector is a microcontroller[Micro:Bit](https://microbit.org/) (the primary interface) and a [Decawave DWM development board](https://www.decawave.com/product/dwm1001-development-board/) (for internal positioning during the show.)  Communication is done over UART.
 
