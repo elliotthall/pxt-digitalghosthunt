@@ -9,7 +9,7 @@
     "files": [
         "README.md",
         "main.cpp",
-        "main.ts",         
+        "main.ts",
         "shims.d.ts",
         "enums.d.ts"
     ],
@@ -17,6 +17,6 @@
         "test.ts"
     ],
     "public": false,
-    "installedVersion": "workspace:f337880d-efe5-45f4-dccc-cc166cf98439",
+    "installedVersion": "file:../pxt-digitalghosthunt",
     "preferredEditor": "tsprj"
 }

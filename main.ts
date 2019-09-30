@@ -18,6 +18,11 @@ const enum SEEKType{
 
 namespace digitalghosthunt {
 
+    // Last anchor reading
+        // When the board loses sight of an anchor it returns the last known
+        // we need to filter for these readings
+    let lastDistance:number=0;
+
    
 
     /* ************************************************
@@ -45,6 +50,8 @@ namespace digitalghosthunt {
         type:number;
         // Which device can detect this point
         device:number;
+
+        
 
         // Optional variables to make these active in particular scenes
         // or acts
@@ -107,10 +114,13 @@ namespace digitalghosthunt {
         // This is the id of the initiator
         public id:number;        
         public points: SpookyPoint[];
+        // Numeric ids of anchors in room for identification
+        public anchorIDs: Number[];
 
-        constructor(id:number,points: SpookyPoint[]){
+        constructor(id:number,points: SpookyPoint[],anchorIDs: Number[]){
             this.id = id;
             this.points = points;
+            this.anchorIDs = anchorIDs;
         }
 
     }
@@ -161,12 +171,12 @@ namespace digitalghosthunt {
 
     //GMeter and Ectoscope
     let gmeterRange = 5000; //in mm
-    let ectoScopeRange = 1500; //in mm
+    let ectoScopeRange = 1000; //in mm
     let scan_result = 0;
 
     //telegraph
     const alphabet: string[] = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
-    const morse: string[] = [".-", "-...", "-.-.", "-..", ".", "..-.", "--.", "....", "..", ".---", "-.-", ".-..", "--", "-.", "---", ".--.", "--.-", ".-.", "...", "-", "..-", "...-", ".--", "-..-", "-.--", "--..", ".----", "..---", "...--", "....-", ".....", "-....", "--...", "---..", "----.", "-----"];
+    const morse: string[] =    [".-", "-...", "-.-.", "-..", ".", "..-.", "--.", "....", "..", ".---", "-.-", ".-..", "--", "-.", "---", ".--.", "--.-", ".-.", "...", "-", "..-", "...-", ".--", "-..-", "-.--", "--..", ".----", "..---", "...--", "....-", ".....", "-....", "--...", "---..", "----.", "-----"];
     
     /*
      Toggle test version so students can use it without UWB and for testing
@@ -177,41 +187,41 @@ namespace digitalghosthunt {
     export let test_mode:number = 0;
     let sep: string = ";;";
     // Their translations, by index
-    let msgs = ['A', 'M', 'UNDER', 'OVER', 'THIEF', 'YES', 'NO', 'WAIT', 'DANGER', 'THANK YOU']
+    export let msgs = ['A', 'M', 'UNDER', 'OVER', 'THIEF', 'YES', 'NO', 'WAIT', 'DANGER', 'THANK YOU']
     
     // Sprit sign
     let selected = [[0, -1]];
     let x: number = 2;
     let y: number = 2;
     // Spirit signs
-    let signs = [
+    export let signs = [
         images.createImage(`
-        # . . . .
-        # . . . .
+        # . . . #
+        . . . # #
+        . . . . .
+        . . . . .
+        # . . . #
+        `),
+        images.createImage(`
+        # . . . #
+        . . . . .
+        . . . . .
+        . . # . .
         # # # # #
-        . . . . #
-        . . . . #
         `),
         images.createImage(`
         # . . . #
-        . . # . .
-        . . # . .
-        . . # . .
+        . . . . .
+        # . . . #
+        # . . . #
         # . . . #
         `),
         images.createImage(`
-        # . . . .
-        # . . . .
         # . . . #
-        . . . . #
-        . . . . #
-        `),
-        images.createImage(`
-        # # . . .
         . . . . .
+        . . # . .
         . . . . .
-        . . . . .
-        . . . . .
+        # . . . # 
         `),
         images.createImage(`
         # # . . .
@@ -221,18 +231,18 @@ namespace digitalghosthunt {
         . . . # #
         `),
         images.createImage(`
-        . . . . #
+        # . . . #
         . . . . #
         . . # # #
         . . . . .
-        # . . . .
+        # . . . #
         `),
         images.createImage(`
-        . . # . .
-        . . # . .
+        # # . # #
+        # . . . .
         . . . . .
-        . . # . .
-        . . # . .
+        . . . . .
+        # . . . #
         `),
         images.createImage(`
         . . . . .
@@ -242,11 +252,11 @@ namespace digitalghosthunt {
         . . . . .
         `),
         images.createImage(`
-        . . . . .
-        . . . . .
-        . . . . .
+        # . . . #
         . . # . .
-        # # # # #
+        . . # . .
+        . . # . .
+        # . . . #        
         `),
         images.createImage(`
         # . . . #
@@ -326,9 +336,11 @@ namespace digitalghosthunt {
     //% block
     export function gMeter(rooms:Room[]): number {        
         let visiblePoints:VisiblePoint[]= scan(currentPos_x(),currentPos_y(), SEEKType.GMETER, rooms);
+        
         if (visiblePoints != null && visiblePoints.length > 0){
-                    
-                    if (visiblePoints[0].distance <= gmeterRange){
+
+                    if (visiblePoints[0].distance <= gmeterRange && lastDistance != visiblePoints[0].distance){
+                       lastDistance = visiblePoints[0].distance;
                        return Math.round((gmeterRange-visiblePoints[0].distance)/gmeterRange*10);
                     }
         }
@@ -360,14 +372,17 @@ namespace digitalghosthunt {
     export function ectoScan(rooms:Room[],trails:EctoTrail[]): number {
         let x:number = 0;
         let visiblePoints:VisiblePoint[]= scan(currentPos_x(),currentPos_y(), SEEKType.ECTOSCOPE, rooms);
+
         if (visiblePoints != null && visiblePoints.length > 0){
             // Get the trail the nearest point belongs to
+
             if (visiblePoints[0].point.trail_id >0){                
                 let trail:EctoTrail = null;
                 if (trails != null && trails.length > 0){                    
                     for (x=0;x<trails.length;x++){
                         if (trails[x].id == visiblePoints[0].point.trail_id){
                             trail = trails[x];                            
+                            
                             break;
                         }
                     }
@@ -391,21 +406,30 @@ namespace digitalghosthunt {
                             }
                             
                         }
+
                     }
 
-                    /*for (x=0;x<trail.points.length;x++){
-                        if (x+1<trail.points.length){
-                            let 
-                        }
+                    if (distances !=null && distances.length >0){                        
+                        distances = distances.sort((n1,n2) => n1 - n2);
+                       /* for (let o:number=0;o<distances.length;o++){
+                        basic.showNumber(Math.round(distances[o]));
+                        basic.pause(100);
                     }*/
-                    if (distances !=null && distances.length >0){
-                        distances.sort();
-                        return Math.round((ectoScopeRange-(distances[0]-trail.width))/ectoScopeRange*10)
+                        let result = Math.round((ectoScopeRange-(distances[0]-trail.width))/ectoScopeRange*10);
+                        
+                        
+                        if (result<=0){
+                            return 0;
+                        } else{
+                            return result;
+                        }                        
+                        
                         
                     }
                 }
             }
         }
+        
         return 0;
     }
 
@@ -431,20 +455,30 @@ namespace digitalghosthunt {
             result = Math.randomRange(0, 10);
         } else {
             // 1. Get all visible anchors            
-            let visibleAnchors:Anchor[] = getAnchors();
+            let visibleAnchors:Anchor[] = getAnchors();            
             // 2. find what Room we're in using anchor ids
-            if (visibleAnchors!=null && visibleAnchors.length >0 && rooms !=null && rooms.length >0){
-                result =rooms.length;
+            if (visibleAnchors!=null && visibleAnchors.length >0 && rooms !=null && rooms.length >0){                
                 let room = null;
-                for (x = 0;x<rooms.length;x++){
-                    for (let p:number = 0;x<rooms[x].points.length;x++){
-                            if (rooms[x].points[p].addr == visibleAnchors[0].addr){
-                                room = rooms[x];
-                                break;
-                            }
+                for (let v:number = 0;v<visibleAnchors.length;v++){
+                    
+                    for (x = 0;x<rooms.length;x++){
+
+                        for (let p:number = 0;p<rooms[x].anchorIDs.length;p++){                                
+                                if (rooms[x].anchorIDs[p] == visibleAnchors[v].addr){
+                                    room = rooms[x];                                                                       
+                                    break;
+                                }
                         }
+                    }
                 }
+                /*
+                for (let m:number=0;m<visiblePoints.length;m++){
+                            basic.showNumber(Math.round(visiblePoints[m].distance));
+                            basic.pause(300); 
+                        }
+                */
                 if (room !=null){
+                     
                     // 3. Find all visible points (filtered by device type) in that room
                     let d:number = 0;
                     let vp:VisiblePoint = null;
@@ -458,10 +492,14 @@ namespace digitalghosthunt {
                                   }
                               }
                             } else{
-                                //TODO TEST THIS WITH REAL GRID !!!!!
-                              d = Math.round(distance(pos_x, pos_y, room.points[x].x, room.points[x].y));                      
-                            }                              
-                            if (d>=0){
+                                
+                                //distToSegment(p_x:number,p_y:number, v:SpookyPoint, w:SpookyPoint) { return Math.sqrt(distToSegmentSquared(p_x,p_y, v, w)); }
+                                //distToSegment(p_x:number,p_y:number, v:SpookyPoint, w:SpookyPoint
+                                d = Math.round(distance(pos_x, pos_y, room.points[x].x, room.points[x].y));                      
+
+                            }     
+                            //TODO find the rogue zero                         
+                            if (d>0){
                                // Subtract the radius
                                    if (room.points[x].radius > 0){
                                        d -= room.points[x].radius;
@@ -484,8 +522,12 @@ namespace digitalghosthunt {
                 }
             }
             
-           
-            
+        }
+        if (visiblePoints !=null){
+        visiblePoints = visiblePoints.sort(
+            function (a, b) {
+                  return a.distance - b.distance;
+            });
         }
         return visiblePoints;
     }
@@ -528,11 +570,12 @@ namespace digitalghosthunt {
         }
         return ""
     }
-    //% block="lean"
-    export function lean(): string {
-        let z = input.rotation(Rotation.Pitch);
-        let a = input.rotation(Rotation.Roll);
-        let lean = "";
+    //% block="getLean"
+    export function getLean(): string {
+        let z:number = input.rotation(Rotation.Pitch);        
+        let a:number = input.rotation(Rotation.Roll);
+        let lean:string = "";
+        
         if (z >= 15) {
             lean = "D";
         } else if (z <= -15) {
