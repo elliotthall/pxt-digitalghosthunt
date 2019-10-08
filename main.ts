@@ -9,7 +9,8 @@ const enum SEEKType{
         ECTOSCOPE = 2,
         SPIRIT_SIGN = 3,
         TELEGRAPH = 4,
-        TRANSMITTER = 5
+        TRANSMITTER = 5,
+        BOOSTER = 6,
     }
 
     const enum UWBType{
@@ -312,7 +313,8 @@ namespace digitalghosthunt {
     export const enum RadioMessages {
         STORY = 0,
         GHOST = 1,
-        ECTO = 2
+        ECTO = 2,
+        BOOSTER = 3,
     }
 
     export const RadioSeparator:string = "::";
@@ -393,8 +395,23 @@ namespace digitalghosthunt {
     Main functions for each type of SEEK detector
 
     */
-
+    function proximity(rooms:Room[],deviceType:number): number {        
    
+      let visiblePoints:VisiblePoint[]= scan(currentPos_x(),currentPos_y(), deviceType, rooms);        
+      if (visiblePoints != null && visiblePoints.length > 0){
+
+                    if (visiblePoints[0].distance <= gmeterRange && lastDistance != visiblePoints[0].distance){
+                       lastDistance = visiblePoints[0].distance;
+                       return (gmeterRange-visiblePoints[0].distance)/gmeterRange;
+                    }
+        }
+        return 0;
+    }
+
+    export function booster(rooms:Room[]): number {  
+        return Math.round(proximity(rooms,SEEKType.BOOSTER)*25);      
+    }
+
     /** 
 
     G Meter
@@ -403,18 +420,10 @@ namespace digitalghosthunt {
                     //    return as a number 0-10 as a percentage of device range
     */
     //% block
-    export function gMeter(rooms:Room[]): number {        
-        let visiblePoints:VisiblePoint[]= scan(currentPos_x(),currentPos_y(), SEEKType.GMETER, rooms);
-        
-        if (visiblePoints != null && visiblePoints.length > 0){
-
-                    if (visiblePoints[0].distance <= gmeterRange && lastDistance != visiblePoints[0].distance){
-                       lastDistance = visiblePoints[0].distance;
-                       return Math.round((gmeterRange-visiblePoints[0].distance)/gmeterRange*10);
-                    }
-        }
-        return 0;
+    export function gMeter(rooms:Room[]): number {  
+        return Math.round(proximity(rooms,SEEKType.GMETER)*10);     
     }
+     
 
 
     // Adapted from: https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment
