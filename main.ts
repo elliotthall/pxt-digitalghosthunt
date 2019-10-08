@@ -8,7 +8,8 @@ const enum SEEKType{
         GMETER =1,
         ECTOSCOPE = 2,
         SPIRIT_SIGN = 3,
-        TELEGRAPH = 4
+        TELEGRAPH = 4,
+        TRANSMITTER = 5
     }
 
     const enum UWBType{
@@ -18,6 +19,155 @@ const enum SEEKType{
 
 namespace digitalghosthunt {
 
+    /**
+    Device images
+    This is a bit weird but done this way to conserve memory
+    and only instatiate images we need for this device
+    */
+
+    export function loadEctoscopeImages() : Image[]{
+        return [
+        images.createImage(`
+                            . . . . .
+                            . . . . .
+                            . . . . .
+                            . . . . .
+                            . . # . .
+                            `),
+        images.createImage(`
+                            . . . . .
+                            . . . . .
+                            . . . . .
+                            . . # . .
+                            . . # . .
+                            `),
+        images.createImage(`
+                            . . . . .
+                            . . . . .
+                            . # # # .
+                            . . # . .
+                            . . # . .
+                            `),
+        images.createImage(`
+                            . . . . .
+                            # # # # #
+                            . # # # .
+                            . . # . .
+                            . . # . .
+                            `),
+        images.createImage(`
+                            # # # # #
+                            # # # # #
+                            . # # # .
+                            . . # . .
+                            . . # . .
+                            `)
+
+
+       ]
+    }
+
+    export function loadTelegraphImages() : Image[]{
+         return [ 
+         images.createImage( 
+           `. . # . .
+            . . # . .
+            . . # . .
+            . . # . .
+            . . # . .
+            `),
+            images.createImage(`
+            # . # . #
+            . # # # .
+            # . # . #
+            . . # . .
+            . . # . .
+            `)
+       ]
+   }
+
+   export let signs:Image[] = null;
+
+   function loadSigns(signs:Image[]) {
+       signs = [
+           images.createImage(`
+            # . . . #
+            . . . # #
+            . . . . .
+            . . . . .
+            # . . . #
+            `),
+            images.createImage(`
+            # . . . #
+            . . . . .
+            . . . . .
+            . . # . .
+            # # # # #
+            `),
+            images.createImage(`
+            # . . . #
+            . . . . .
+            # . . . #
+            # . . . #
+            # . . . #
+            `),
+            images.createImage(`
+            # . . . #
+            . . . . .
+            . . # . .
+            . . . . .
+            # . . . # 
+            `),
+            images.createImage(`
+            # # . . .
+            # . . . .
+            . . . . .
+            . . . . #
+            . . . # #
+            `),
+            images.createImage(`
+            # . . . #
+            . . . . #
+            . . # # #
+            . . . . .
+            # . . . #
+            `),
+            images.createImage(`
+            # # . # #
+            # . . . .
+            . . . . .
+            . . . . .
+            # . . . #
+            `),
+            images.createImage(`
+            . . . . .
+            . . . . .
+            # # . # #
+            . . . . .
+            . . . . .
+            `),
+            images.createImage(`
+            # . . . #
+            . . # . .
+            . . # . .
+            . . # . .
+            # . . . #        
+            `),
+            images.createImage(`
+            # . . . #
+            # . . . #
+            # # # # #
+            . . . . .
+            . . . . .
+            `)
+        ];
+   }
+
+   export function loadSpiritSigns(){
+       loadSigns(signs);
+   }
+
+   
     // Last anchor reading
         // When the board loses sight of an anchor it returns the last known
         // we need to filter for these readings
@@ -159,12 +309,13 @@ namespace digitalghosthunt {
 
     /* Radio settings, TBD */
 
-    const enum RadioMessages {
-        STORY = "S",
-        GHOST = "G",
+    export const enum RadioMessages {
+        STORY = 0,
+        GHOST = 1,
+        ECTO = 2
     }
 
-    const RadioSeparator:string = "::";
+    export const RadioSeparator:string = "::";
     const SEEKGroup:number = 99;
 
     /* SEEK presets and variable, by device */
@@ -194,78 +345,9 @@ namespace digitalghosthunt {
     let x: number = 2;
     let y: number = 2;
     // Spirit signs
-    export let signs = [
-        images.createImage(`
-        # . . . #
-        . . . # #
-        . . . . .
-        . . . . .
-        # . . . #
-        `),
-        images.createImage(`
-        # . . . #
-        . . . . .
-        . . . . .
-        . . # . .
-        # # # # #
-        `),
-        images.createImage(`
-        # . . . #
-        . . . . .
-        # . . . #
-        # . . . #
-        # . . . #
-        `),
-        images.createImage(`
-        # . . . #
-        . . . . .
-        . . # . .
-        . . . . .
-        # . . . # 
-        `),
-        images.createImage(`
-        # # . . .
-        # . . . .
-        . . . . .
-        . . . . #
-        . . . # #
-        `),
-        images.createImage(`
-        # . . . #
-        . . . . #
-        . . # # #
-        . . . . .
-        # . . . #
-        `),
-        images.createImage(`
-        # # . # #
-        # . . . .
-        . . . . .
-        . . . . .
-        # . . . #
-        `),
-        images.createImage(`
-        . . . . .
-        . . . . .
-        # # . # #
-        . . . . .
-        . . . . .
-        `),
-        images.createImage(`
-        # . . . #
-        . . # . .
-        . . # . .
-        . . # . .
-        # . . . #        
-        `),
-        images.createImage(`
-        # . . . #
-        # . . . #
-        # # # # #
-        . . . . .
-        . . . . .
-        `),
-    ];
+    
+    
+    
 
     /* ****************************************************************
 
@@ -289,20 +371,7 @@ namespace digitalghosthunt {
     /** Setup the radio events and channels
     */
     function setupRadio(){        
-        radio.setGroup(SEEKGroup);
-        radio.onReceivedString(function (receivedString: string) {
-            if (receivedString.length > 0){
-                let message:string[] = receivedString.split(RadioSeparator);
-                if (message.length > 1){
-                    /*if (message[0].indexOf(RadioMessages.GHOST)>=0) {                        
-                            // Used in the finale when the ghost 'speaks' through detectors
-                            basic.showString(message[1]);                
-                     }*/                      
-                    
-                }
-                
-            }    
-        });
+        radio.setGroup(SEEKGroup);        
     }
 
     /**

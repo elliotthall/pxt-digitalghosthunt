@@ -23,6 +23,7 @@ namespace digitalghosthunt {
 	#define ERROR_LOC_BAD_Anchor 59 // Missing/malformed Anchor byte report
 	#define ERROR_BUFFER_OVERRUN 60 // Response is too big for default buffer
 
+
 	// Running mode, 0 is default, 1 is debug
 	short mode = 0;
 
@@ -159,14 +160,14 @@ namespace digitalghosthunt {
 	int parseDWMReturn(uint8_t RXBuffer[], int bufferIndex){
 		if (RXBuffer[bufferIndex] == UWB_RETURN_BYTE){
 				// OK we've got a correct return
-				// Check the error code
+				// Check the error code				
 				if ( (sizeof(RXBuffer) /sizeof(RXBuffer[0])) > 2 && RXBuffer[bufferIndex+2] == (uint8_t)0){
 					return bufferIndex+=3;
-				} else{
+				} else {
 					return -1;
 				}
 		}
-		return -1;
+		return -10;
 	}
 
 	/* Fill array pos with x,y,z coordinates from a DWM1001-DEV return RXBuffer.
@@ -252,12 +253,18 @@ namespace digitalghosthunt {
 	//%
 	int currentLoc(){
 		if (mode == 0){
-	    	uint8_t RXBuffer[BUFFLEN];
-			uBit.serial.send((uint8_t *)GET_LOC, 2);
-			uBit.sleep(200);		
+	    	uint8_t RXBuffer[BUFFLEN];			
 			int waiting = -1;
 			int bufferIndex = -1;		
 			// How much is waiting in the RX buffer?
+	    	/*waiting = uBit.serial.rxBufferedSize();
+	    	if (waiting > 0){     		
+	    		//Junk in the buffer, get rid of it
+	    		//uBit.serial.read((uint8_t *)RXBuffer,waiting,ASYNC);
+	    		uBit.display.scroll(waiting);
+	    	}*/
+	    	uBit.serial.send((uint8_t *)GET_LOC, 2);
+			uBit.sleep(200);		
 	    	waiting = uBit.serial.rxBufferedSize();
 	    	if (waiting > BUFFLEN){
 		    	uBit.panic(10);
@@ -282,7 +289,7 @@ namespace digitalghosthunt {
 	    			} else{
 	    				uBit.display.scroll("ERROR DWMPARSELOC");
 	    			}
-	    		} else{
+	    		} else {
 	    			uBit.display.scroll("ERROR DWMReturn");
 	    		}
 	    		
