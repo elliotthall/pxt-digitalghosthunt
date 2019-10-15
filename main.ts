@@ -11,6 +11,7 @@ const enum SEEKType{
         TELEGRAPH = 4,
         TRANSMITTER = 5,
         BOOSTER = 6,
+        
     }
 
     const enum UWBType{
