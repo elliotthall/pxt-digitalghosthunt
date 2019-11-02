@@ -90,8 +90,8 @@ namespace digitalghosthunt {
 
    export let signs:Image[] = null;
 
-   function loadSigns(signs:Image[]) {
-       signs = [
+   export function loadSpiritSigns() {
+       return [
            images.createImage(`
             # . . . #
             . . . # #
@@ -129,8 +129,8 @@ namespace digitalghosthunt {
             `),
             images.createImage(`
             # . . . #
-            . . . . #
-            . . # # #
+            . . . . .
+            . . . . .
             . . . . .
             # . . . #
             `),
@@ -163,12 +163,10 @@ namespace digitalghosthunt {
             . . . . .
             `)
         ];
+        
    }
 
-   export function loadSpiritSigns(){
-       loadSigns(signs);
-   }
-
+   
    
     // Last anchor reading
         // When the board loses sight of an anchor it returns the last known
@@ -344,7 +342,7 @@ namespace digitalghosthunt {
     export let msgs = ['A', 'M', 'UNDER', 'OVER', 'THIEF', 'YES', 'NO', 'WAIT', 'DANGER', 'THANK YOU']
     
     // Sprit sign
-    let selected = [[0, -1]];
+    export let selected:Image = null;
     let x: number = 2;
     let y: number = 2;
     // Spirit signs
@@ -422,7 +420,7 @@ namespace digitalghosthunt {
     */
     //% block
     export function gMeter(rooms:Room[]): number {  
-        return Math.round(proximity(rooms,SEEKType.GMETER)*10);     
+        return proximity(rooms,SEEKType.GMETER);
     }
      
 
@@ -494,7 +492,7 @@ namespace digitalghosthunt {
                         basic.showNumber(Math.round(distances[o]));
                         basic.pause(100);
                     }*/
-                        let result = Math.round((ectoScopeRange-(distances[0]-trail.width))/ectoScopeRange*10);
+                        let result = Math.round((ectoScopeRange-(distances[0]-trail.width))/ectoScopeRange*25);
                         
                         
                         if (result<=0){
@@ -550,12 +548,7 @@ namespace digitalghosthunt {
                         }
                     }
                 }
-                /*
-                for (let m:number=0;m<visiblePoints.length;m++){
-                            basic.showNumber(Math.round(visiblePoints[m].distance));
-                            basic.pause(300); 
-                        }
-                */
+                
                 if (room !=null){
                      
                     // 3. Find all visible points (filtered by device type) in that room
@@ -670,77 +663,77 @@ namespace digitalghosthunt {
 
     //%block
     export function select() {
-        selected.push([x, y]);
+        selected.setPixel(x, y, true);
     }
     //%block="Move Up"
-    export function moveup() {
-        if (notselected(x, y) == true) {
+    export function moveup(selected:Image) {
+        if (selected.pixel(x,y) == false){
             led.unplot(x, y);
         }
         if (y > 0) {
             y += -1;
         }
-        led.plot(x, y);
+        led.plot(x,y);
 
     }
     //%block="Move Down"
-    export function moveDown() {
-        if (notselected(x, y) == true) {
+    export function moveDown(selected:Image) {
+        if (selected.pixel(x,y) == false){
             led.unplot(x, y);
         }
         if (y < 4) {
             y += 1;
         }
-        led.plot(x, y);
+        led.plot(x,y);
     }
 
     //%block="Move Left"
-    export function moveLeft() {
-        if (notselected(x, y) == true) {
+    export function moveLeft(selected:Image) {
+        if (selected.pixel(x,y) == false){
             led.unplot(x, y);
         }
         if (x > 0) {
             x += -1;
         }
-        led.plot(x, y);
+        led.plot(x,y);
     }
 
-    function notselected(x: number, y: number): boolean {
-        let toggle = true;
-        for (let s = 0; s < selected.length; s++) {
-            if (x == selected[s][0] && y == selected[s][1]) {
-                toggle = false;
-                break;
-            }
-        }
-        return toggle;
-    }
+    
 
     //%block="Move Right"
-    export function moveRight() {
-        if (notselected(x, y) == true) {
+    export function moveRight(selected:Image) {
+        if (selected.pixel(x,y) == false){
             led.unplot(x, y);
         }
         if (x < 4) {
             x += 1;
         }
-        led.plot(x, y);
+        led.plot(x,y);
     }
 
 
 
     //% block="decode|sign %sign"
-    export function decode(): string {
+    export function decode(selected:Image, signs:Image[]): string {
         //Serialise the screen image into a string
         //let screen: Image = led.screenshot();
 
         let msg: string = "?"
         let matches: boolean = true
         for (let t = 0; t < signs.length; t++) {
-            matches = true
+            matches = true;
             for (let b = 0; b < 5; b++) {
                 for (let c = 0; c < 5; c++) {
-                    if (led.point(b, c)) {
+                    if (selected.pixel(b,c)){
+                        if (!signs[t].pixel(b, c)) {
+                            matches = false;
+                        }
+                    } else if (!selected.pixel(b,c)) {
+                        if (signs[t].pixel(b, c)) {
+                            matches = false;
+                        }
+                    }
+                    /*if (led.point(b, c)) {
                         if (!signs[t].pixel(b, c)) {
                             matches = false;
                         }
@@ -748,7 +741,7 @@ namespace digitalghosthunt {
                         if (signs[t].pixel(b, c)) {
                             matches = false;
                         }
-                    }
+                    }*/
 
                 }
             }
@@ -757,7 +750,13 @@ namespace digitalghosthunt {
                 break;
             }
         }
-        selected = [];
+        selected = images.createImage(`
+                            . . . . .
+                            . . . . .
+                            . . . . .
+                            . . . . .
+                            . . . . .
+                            `);
         x = 2;
         y = 2;
         return msg;
