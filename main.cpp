@@ -47,6 +47,14 @@ namespace digitalghosthunt {
 	const char ANCHOR_RETURN_BYTE=0x49; //73
 	//DWM code for get location (see api guide)
 	const char GET_LOC[] = {0x0c,0x00};
+
+	// New Spirit sign definitions
+	// For transformation commands
+	#define SIGN_CLOCKWISE 0
+	#define SIGN_UP 1
+	#define SIGN_RIGHT 2
+	#define SIGN_DOWN 3
+	#define SIGN_LEFT 4
 	
 	
 	// The tag's current x,y,z position
@@ -325,6 +333,88 @@ namespace digitalghosthunt {
     	
 	}
 
+	/***********
+	NEW spirit sign screen/led functions
+	These functions support ssign 2.0
+
+	Notes for when I have time to finish this:
+
+	-New sign is made of 'fragments'(images) that user rotates/moves into place
+	-Always start with one fragment in a corner to provide orientation
+	-User then manipulates fragments, until they match up with that step press B to check
+	-Once all fragments are in place, final b does translation
+
+	This is a nicer method of translation, less fiddly and won't cause annoying problems when
+	mistakes made
+	- possible p2p applications with multiple devices on multiple fragments for a big image
+	but will need different master device or larger screen
+
+	IMPORTANT NOTE:
+	This means this device will now use UWB (see below) imporatnt consideration
+	OR we could give them preset start points e.g. 'common' beginnings, but it might be tricky
+
+	TODO
+	- add 'scan' function to use uwb so device knows it's near an image, to begin process
+	- add check function
+	- rewrite decode to do direct image comparison
+	- split signs into their fragments
+	- load sign function should use flash memory if possible 
+	(https://lancaster-university.github.io/microbit-docs/data-types/image/#storing-images-in-flash-memory)
+	
+	*/	
+
+	/*
+	Simple matrix rotation applied in place
+
+	*/
+	void rotateImageClockwise(MicroBitImage source){
+		MicroBitImage rotated(source.getWidth(),source.getHeight());
+		// So 0,0 becomes 4,4 etc.
+		for (uint8_t r=0; r<source.getWidth();r++){
+			for (uint8_t c=0; c<source.getHeight();c++){
+				rotated.setPixelValue(source.getWidth()-r-1,source.getHeight()-c-1,source.getPixelValue(r,c));
+			}
+		}
+		//copy new image to parameter
+		source = rotated;
+	}
+
+	
+	// Apply transformation to working image
+	void applyTransformation(MicroBitImage image,uint8_t transformType){
+		// Rotate
+		if (transformType == SIGN_CLOCKWISE){
+			rotateImageClockwise(image);
+		}else if (transformType == SIGN_UP){		
+			image.shiftUp(1);
+		}else if (transformType == SIGN_RIGHT){		
+			image.shiftRight(1);
+		}else if (transformType == SIGN_DOWN){		
+			image.shiftDown(1);
+		}else if (transformType == SIGN_LEFT){		
+			image.shiftLeft(1);
+		}
+		
+ 	}
+	
+	// merge current 'master' imageA onto working and display imageB
+	// Positive merge so all 'on' leds included, brightness ignored for now
+	// IMPORTANT NOTE: Uses imageA for size!
+ 	MicroBitImage mergeImages(MicroBitImage imageA, MicroBitImage imageB){
+ 		//New merged image
+ 		MicroBitImage mergedImage(imageA.getWidth(),imageA.getHeight());
+ 		for (uint8_t r=0; r<imageA.getWidth();r++){
+			for (uint8_t c=0; c<imageA.getHeight();c++){
+				// If led on in A OR B, turn it on to 255
+				if (imageA.getPixelValue(r,c)>0 || imageB.getPixelValue(r,c)>0){
+					mergedImage.setPixelValue(r,c,255);
+				}
+			}
+		} 		
+ 		return mergedImage;
+ 	}
+	
+	
 	
 
 
