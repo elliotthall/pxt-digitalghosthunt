@@ -374,7 +374,7 @@ namespace digitalghosthunt {
 	From: 
 	https://lancaster-university.github.io/microbit-docs/data-types/image/#storing-images-in-flash-memory
 	MicroBitImage
-	*/
+	
 	void saveImageToFlash(MicroBitImage i){
 		//Make image into bitmap
 		
@@ -387,10 +387,10 @@ namespace digitalghosthunt {
 		for (uint8_t x=0;x<imageBitmapSize;x++){
 			imageData[6+x] = i.getBitmap()[x];
 		}
-		const uint8_t imageBytes[imageBitmapSize] __attribute__ ((aligned (4))) = imageData;
+		const uint8_t imageBytes[imageBitmapSize] __attribute__ ((aligned (4))) = {imageData};
 		//return MicroBitImage((ImageData*)imageBytes);
 		
-	}
+	}*/
 
 	/*
 	Simple matrix rotation applied in place
