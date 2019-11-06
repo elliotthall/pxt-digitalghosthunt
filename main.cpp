@@ -3,6 +3,7 @@
 #include "serial_api.h"
 #include <cmath>
 #include "MicroBit.h"
+#include <array>
 
 using namespace pxt;
 
@@ -362,6 +363,34 @@ namespace digitalghosthunt {
 	(https://lancaster-university.github.io/microbit-docs/data-types/image/#storing-images-in-flash-memory)
 	
 	*/	
+
+	/*
+	Utility function to save a standard image into flash memory
+	useful to allow the nicer 'drawing' method of image creations
+	but then move it to flash to free up RAM
+
+	REMINDER: Image saved in flahs are immutable
+
+	From: 
+	https://lancaster-university.github.io/microbit-docs/data-types/image/#storing-images-in-flash-memory
+	MicroBitImage
+	*/
+	void saveImageToFlash(MicroBitImage i){
+		//Make image into bitmap
+		
+		uint8_t width = i.getWidth();
+		uint8_t height = i.getHeight();
+		uint8_t imageBitmapSize = (sizeof(i.getBitmap())/sizeof(i.getBitmap()[0]))+6;		
+
+		// Save it with two 0xFF bytes to tell os to move to flash as well as width, 0, height, 0
+		uint8_t imageData[imageBitmapSize] = { 0xff, 0xff, width, 0, height,0};
+		for (uint8_t x=0;x<imageBitmapSize;x++){
+			imageData[6+x] = i.getBitmap()[x];
+		}
+		const uint8_t imageBytes[imageBitmapSize] __attribute__ ((aligned (4))) = imageData;
+		//return MicroBitImage((ImageData*)imageBytes);
+		
+	}
 
 	/*
 	Simple matrix rotation applied in place
