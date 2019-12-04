@@ -11,6 +11,7 @@ const enum SEEKType{
         TELEGRAPH = 4,
         TRANSMITTER = 5,
         BOOSTER = 6,
+        TRIGGER = 7
         
     }
 
@@ -88,83 +89,9 @@ namespace digitalghosthunt {
        ]
    }
 
-   export let signs:Image[] = null;
+   
 
-   export function loadSpiritSigns() {
-       return [
-           images.createImage(`
-            # . . . #
-            . . . # #
-            . . . . .
-            . . . . .
-            # . . . #
-            `),
-            images.createImage(`
-            # . . . #
-            . . . . .
-            . . . . .
-            . . # . .
-            # # # # #
-            `),
-            images.createImage(`
-            # . . . #
-            . . . . .
-            # . . . #
-            # . . . #
-            # . . . #
-            `),
-            images.createImage(`
-            # . . . #
-            . . . . .
-            . . # . .
-            . . . . .
-            # . . . # 
-            `),
-            images.createImage(`
-            # # . . .
-            # . . . .
-            . . . . .
-            . . . . #
-            . . . # #
-            `),
-            images.createImage(`
-            # . . . #
-            . . . . .
-            . . . . .
-            . . . . .
-            # . . . #
-            `),
-            images.createImage(`
-            # # . # #
-            # . . . .
-            . . . . .
-            . . . . .
-            # . . . #
-            `),
-            images.createImage(`
-            . . . . .
-            . . . . .
-            # # . # #
-            . . . . .
-            . . . . .
-            `),
-            images.createImage(`
-            # . . . #
-            . . # . .
-            . . # . .
-            . . # . .
-            # . . . #        
-            `),
-            images.createImage(`
-            # . . . #
-            # . . . #
-            # # # # #
-            . . . . .
-            . . . . .
-            `)
-        ];
-        
-   }
+   
 
    
    
@@ -314,6 +241,7 @@ namespace digitalghosthunt {
         GHOST = 1,
         ECTO = 2,
         BOOSTER = 3,
+        TRIGGER = 4
     }
 
     export const RadioSeparator:string = "::";
@@ -322,7 +250,7 @@ namespace digitalghosthunt {
     /* SEEK presets and variable, by device */
 
     //GMeter and Ectoscope
-    let gmeterRange = 5000; //in mm
+    export let gmeterRange = 5000; //in mm
     let ectoScopeRange = 1000; //in mm
     let scan_result = 0;
 
@@ -347,7 +275,25 @@ namespace digitalghosthunt {
     let y: number = 2;
     // Spirit signs
     
-    
+    export function eqDisplay(reading:number, delay:number){
+        let p = Math.round(200/reading)
+        let displayed:number = 0;
+        for (let b = 0; b < 5; b++) {
+            for (let c = 0; c < 5; c++) {
+                if (displayed<=reading){
+                    led.plot(b,c);
+                    basic.pause(p);
+                    displayed+=1;
+                }else{
+                    break;
+                }
+            }
+        }
+    }
+
+    export function ectoDisplay(reading:number){        
+        eqDisplay(reading, 200);                        
+    }
     
 
     /* ****************************************************************
@@ -857,10 +803,36 @@ namespace digitalghosthunt {
 
 
 
+/* ****************************************************************
 
+    New Spirit sign functions
+
+    */
      
+    
+    //% shim=digitalghosthunt::loadFragment
+    export function loadFragment(signIndex:number, fragIndex:number, sign:Image) {
+        
+    }
+
+    //% shim=digitalghosthunt::shiftImageLeft
+    export function shiftImageLeft(i:Image){
+        
+    }
+
+    //% shim=digitalghosthunt::applyTransformation
+    export function applyTransformation(i:Image,transformType:number){
+
+    }
+
+    //% shin=digitalghosthunt:loadSpiritSigns
+    export function loadSpiritSigns(){
+
+    }
 
     
+    
+
 
 /* ***************************************
 

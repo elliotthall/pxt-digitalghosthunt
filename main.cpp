@@ -4,6 +4,7 @@
 #include <cmath>
 #include "MicroBit.h"
 #include <array>
+#include <string>
 
 using namespace pxt;
 
@@ -51,6 +52,8 @@ namespace digitalghosthunt {
 
 	// New Spirit sign definitions
 	// For transformation commands
+	#define MAX_SIGNS 5
+	#define MAX_FRAGMENTS 3
 	#define SIGN_CLOCKWISE 0
 	#define SIGN_UP 1
 	#define SIGN_RIGHT 2
@@ -392,9 +395,151 @@ namespace digitalghosthunt {
 		
 	}*/
 
+	//uint8_t RXBuffer[]
+
+
+	class SpiritSign {
+	public:
+		SpiritSign(){
+		};	
+		MicroBitImage sign;	
+		MicroBitImage fragments[MAX_FRAGMENTS];
+	};
+
+
+	SpiritSign spiritSigns[MAX_SIGNS];
+
+	// Load our signs into flash memory
+	// Because we're loading into flash this isn't too friendly right now	
+	//%
+	void loadSpiritSigns(){
+		const uint8_t signA[] __attribute__ ((aligned (4))) = { 0xff, 0xff, 5, 0, 5, 0, 
+															   1, 1, 1, 0, 0,
+															   0, 0, 1, 0, 0,
+															   0, 0, 1, 0, 0,
+															   0, 0, 1, 0, 0,
+															   0, 0, 1, 1, 1};
+		const uint8_t fragA1[] __attribute__ ((aligned (4))) = { 0xff, 0xff, 5, 0, 5, 0, 
+															   1, 1, 0, 0, 0,
+															   0, 0, 0, 0, 0,
+															   0, 0, 0, 0, 0,
+															   0, 0, 0, 0, 0,
+															   0, 0, 0, 0, 0};
+		const uint8_t fragA2[] __attribute__ ((aligned (4))) = { 0xff, 0xff, 5, 0, 5, 0, 
+															   0, 0, 1, 0, 0,
+															   0, 0, 1, 0, 0,
+															   0, 0, 1, 0, 0,
+															   0, 0, 0, 0, 0,
+															   0, 0, 0, 0, 0};
+		const uint8_t fragA3[] __attribute__ ((aligned (4))) = { 0xff, 0xff, 5, 0, 5, 0, 
+															   0, 0, 0, 0, 0,
+															   0, 0, 0, 0, 0,
+															   0, 0, 0, 0, 0,
+															   0, 0, 1, 0, 0,
+															   0, 0, 1, 1, 1};															   
+		MicroBitImage i((ImageData*)signA);
+		spiritSigns[0] = SpiritSign();
+		spiritSigns[0].sign = i;
+		spiritSigns[0].fragments[0] = MicroBitImage((ImageData*)fragA1);
+		spiritSigns[0].fragments[1] = MicroBitImage((ImageData*)fragA2);
+		spiritSigns[0].fragments[2] = MicroBitImage((ImageData*)fragA3);
+	}
+
+
+
+	/*
+	Container class to hold a current solution
+	*/		
+	class SpiritSolution{
+	public:
+		SpiritSolution(){
+
+		}
+		SpiritSolution(int sIndex){
+			signIndex = sIndex;
+			// Clone sign fragments for manipulation
+			for (int r=0; r<MAX_FRAGMENTS;r++){
+				fragments[r] = spiritSigns[sIndex].fragments[r].clone();
+			}
+		};
+		int signIndex = 0;
+		int currentFragment = 0;		
+		// Representaiton of all fragments pasted
+		MicroBitImage currentImage;	
+		// Fragments of current sign we're working (cloned from original)
+		MicroBitImage fragments[MAX_FRAGMENTS];	
+		int fragmentOffsetsX[MAX_FRAGMENTS];
+		int fragmentOffsetsY[MAX_FRAGMENTS];
+		// Increment the fragment we're working on
+		// Back to 0 if we're at the end of the array
+		void nextFragment(){
+			// Switch fragments
+			if (currentFragment < MAX_FRAGMENTS){
+				currentFragment += 1;
+			}else{
+				currentFragment = 0;
+			}
+		}
+		void mergeFragments(){
+			//Paste all fragments on the solution image
+			// at current offsets
+			currentImage.clear();
+			for (int r=0; r<MAX_FRAGMENTS;r++){
+				currentImage.paste(fragments[r],fragmentOffsetsX[r],fragmentOffsetsY[r],1);
+			}
+		}
+
+		void transformCurrentFragment(uint8_t transformType){
+			if (transformType == SIGN_CLOCKWISE){
+			
+			}else if (transformType == SIGN_UP){		
+				if (fragmentOffsetsY[currentFragment]>-5){
+					fragmentOffsetsY[currentFragment]-=1;
+				}
+			}else if (transformType == SIGN_RIGHT){		
+				if (fragmentOffsetsX[currentFragment]<5){
+					fragmentOffsetsX[currentFragment]+=1;
+				}
+			}else if (transformType == SIGN_DOWN){		
+				if (fragmentOffsetsY[currentFragment]<5){
+					fragmentOffsetsY[currentFragment]+=1;
+				}
+			}else if (transformType == SIGN_LEFT){		
+				if (fragmentOffsetsX[currentFragment]>-5){
+					fragmentOffsetsX[currentFragment]-=1;
+				}
+			}
+		}
+
+	};
+
+
+	SpiritSolution solution;
+	
+	
+	/*
+	Accept a serialised image and save it at index 
+	todo make these use flash if possible?
+	*/
+	/*
+	void loadSign(uint8_t index,string leds){
+		MicroBitImage cross(string::data(leds));
+	}*/
+
+	// These are both weird and a little stupid
+	// Will replace with something cleaner when I understand it better
+
+	//%
+	void setCurrentSign(int signIndex){
+		solution.signIndex = signIndex;
+			// Clone sign fragments for manipulation
+		for (int r=0; r<MAX_FRAGMENTS;r++){
+				soultion.fragments[r] = spiritSigns[signIndex].fragments[r].clone();
+		}
+	}
+
 	/*
 	Simple matrix rotation applied in place
-
 	*/
 	void rotateImageClockwise(MicroBitImage source){
 		MicroBitImage rotated(source.getWidth(),source.getHeight());
@@ -408,20 +553,27 @@ namespace digitalghosthunt {
 		source = rotated;
 	}
 
+	//%
+	void shiftImageLeft(Image i){
+		i->makeWritable();
+    	MicroBitImage(i->img).shiftLeft(1);
+	}
 	
 	// Apply transformation to working image
-	void applyTransformation(MicroBitImage image,uint8_t transformType){
+	//%
+	void applyTransformation(Image i,uint8_t transformType){
 		// Rotate
+		i->makeWritable();
 		if (transformType == SIGN_CLOCKWISE){
-			rotateImageClockwise(image);
+			rotateImageClockwise(MicroBitImage(i->img));
 		}else if (transformType == SIGN_UP){		
-			image.shiftUp(1);
+			MicroBitImage(i->img).shiftUp(1);
 		}else if (transformType == SIGN_RIGHT){		
-			image.shiftRight(1);
+			MicroBitImage(i->img).shiftRight(1);
 		}else if (transformType == SIGN_DOWN){		
-			image.shiftDown(1);
+			MicroBitImage(i->img).shiftDown(1);
 		}else if (transformType == SIGN_LEFT){		
-			image.shiftLeft(1);
+			MicroBitImage(i->img).shiftLeft(1);
 		}
 		
  	}
