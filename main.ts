@@ -11,7 +11,8 @@ const enum SEEKType{
         TELEGRAPH = 4,
         TRANSMITTER = 5,
         BOOSTER = 6,
-        TRIGGER = 7
+        TRIGGER = 7,
+        OMNI = 8
         
     }
 
@@ -22,78 +23,8 @@ const enum SEEKType{
 
 namespace digitalghosthunt {
 
-    /**
-    Device images
-    This is a bit weird but done this way to conserve memory
-    and only instatiate images we need for this device
-    */
-
-    export function loadEctoscopeImages() : Image[]{
-        return [
-        images.createImage(`
-                            . . . . .
-                            . . . . .
-                            . . . . .
-                            . . . . .
-                            . . # . .
-                            `),
-        images.createImage(`
-                            . . . . .
-                            . . . . .
-                            . . . . .
-                            . . # . .
-                            . . # . .
-                            `),
-        images.createImage(`
-                            . . . . .
-                            . . . . .
-                            . # # # .
-                            . . # . .
-                            . . # . .
-                            `),
-        images.createImage(`
-                            . . . . .
-                            # # # # #
-                            . # # # .
-                            . . # . .
-                            . . # . .
-                            `),
-        images.createImage(`
-                            # # # # #
-                            # # # # #
-                            . # # # .
-                            . . # . .
-                            . . # . .
-                            `)
 
 
-       ]
-    }
-
-    export function loadTelegraphImages() : Image[]{
-         return [ 
-         images.createImage( 
-           `. . # . .
-            . . # . .
-            . . # . .
-            . . # . .
-            . . # . .
-            `),
-            images.createImage(`
-            # . # . #
-            . # # # .
-            # . # . #
-            . . # . .
-            . . # . .
-            `)
-       ]
-   }
-
-   
-
-   
-
-   
    
     // Last anchor reading
         // When the board loses sight of an anchor it returns the last known
@@ -214,10 +145,6 @@ namespace digitalghosthunt {
             return null;
         }
 
-        
-
- 
-
 
     class Anchor {
         addr:number;
@@ -254,9 +181,6 @@ namespace digitalghosthunt {
     let ectoScopeRange = 1000; //in mm
     let scan_result = 0;
 
-    //telegraph
-    const alphabet: string[] = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
-    const morse: string[] =    [".-", "-...", "-.-.", "-..", ".", "..-.", "--.", "....", "..", ".---", "-.-", ".-..", "--", "-.", "---", ".--.", "--.-", ".-.", "...", "-", "..-", "...-", ".--", "-..-", "-.--", "--..", ".----", "..---", "...--", "....-", ".....", "-....", "--...", "---..", "----.", "-----"];
     
     /*
      Toggle test version so students can use it without UWB and for testing
@@ -266,14 +190,7 @@ namespace digitalghosthunt {
      */
     export let test_mode:number = 0;
     let sep: string = ";;";
-    // Their translations, by index
-    export let msgs = ['A', 'M', 'UNDER', 'OVER', 'THIEF', 'YES', 'NO', 'WAIT', 'DANGER', 'THANK YOU']
     
-    // Sprit sign
-    export let selected:Image = null;
-    let x: number = 2;
-    let y: number = 2;
-    // Spirit signs
     
     export function eqDisplay(reading:number, delay:number){
         let p = Math.round(200/reading)
@@ -291,9 +208,6 @@ namespace digitalghosthunt {
         }
     }
 
-    export function ectoDisplay(reading:number){        
-        eqDisplay(reading, 200);                        
-    }
     
 
     /* ****************************************************************
@@ -340,7 +254,7 @@ namespace digitalghosthunt {
     Main functions for each type of SEEK detector
 
     */
-    function proximity(rooms:Room[],deviceType:number): number {        
+    export function proximity(rooms:Room[],deviceType:number): number {        
    
       let visiblePoints:VisiblePoint[]= scan(currentPos_x(),currentPos_y(), deviceType, rooms);        
       if (visiblePoints != null && visiblePoints.length > 0){
@@ -353,21 +267,8 @@ namespace digitalghosthunt {
         return 0;
     }
 
-    export function booster(rooms:Room[]): number {  
-        return Math.round(proximity(rooms,SEEKType.BOOSTER)*25);      
-    }
-
-    /** 
-
-    G Meter
-    v2.0 now uses UWB functions below
-    if nearest point is in range, 
-                    //    return as a number 0-10 as a percentage of device range
-    */
-    //% block
-    export function gMeter(rooms:Room[]): number {  
-        return proximity(rooms,SEEKType.GMETER);
-    }
+    
+    
      
 
 
@@ -550,164 +451,8 @@ namespace digitalghosthunt {
         return visiblePoints;
     }
 
-    //% block="transmit|message %msg"
-    export function transmit(msg: string): string {
-        basic.showLeds(`
-    . . # . .
-    . . # . .
-    . . # . .
-    . . # . .
-    . . # . .
-    `);
-        basic.pause(300);
-        basic.showLeds(`
-    # . # . #
-    . # # # .
-    # . # . #
-    . . # . .
-    . . # . .
-    `)
-        basic.pause(300);
-        basic.showLeds(`
-    . . # . .
-    . . # . .
-    . . # . .
-    . . # . .
-    . . # . .
-    `);
-        if (msg == 'TEST') {
-            return "TEST"
-        } else {
-            //sendtopi(msg)
-            for (let m = 0; m < morse.length; m++) {
-                if (msg == morse[m]) {
-                    return alphabet[m];
-                }
-            }
-
-        }
-        return ""
-    }
-    //% block="getLean"
-    export function getLean(): string {
-        let z:number = input.rotation(Rotation.Pitch);        
-        let a:number = input.rotation(Rotation.Roll);
-        let lean:string = "";
-        
-        if (z >= 15) {
-            lean = "D";
-        } else if (z <= -15) {
-            lean = "U";
-        } else if (a >= 15) {
-            lean = "R";
-        } else if (a <= -15) {
-            lean = "L";
-        }
-
-        return lean;
-    }
-
-    //%block
-    export function select() {
-        selected.setPixel(x, y, true);
-    }
-    //%block="Move Up"
-    export function moveup(selected:Image) {
-        if (selected.pixel(x,y) == false){
-            led.unplot(x, y);
-        }
-        if (y > 0) {
-            y += -1;
-        }
-        led.plot(x,y);
-
-    }
-    //%block="Move Down"
-    export function moveDown(selected:Image) {
-        if (selected.pixel(x,y) == false){
-            led.unplot(x, y);
-        }
-        if (y < 4) {
-            y += 1;
-        }
-        led.plot(x,y);
-    }
-
-    //%block="Move Left"
-    export function moveLeft(selected:Image) {
-        if (selected.pixel(x,y) == false){
-            led.unplot(x, y);
-        }
-        if (x > 0) {
-            x += -1;
-        }
-        led.plot(x,y);
-    }
-
     
-
-    //%block="Move Right"
-    export function moveRight(selected:Image) {
-        if (selected.pixel(x,y) == false){
-            led.unplot(x, y);
-        }
-        if (x < 4) {
-            x += 1;
-        }
-        led.plot(x,y);
-    }
-
-
-
-    //% block="decode|sign %sign"
-    export function decode(selected:Image, signs:Image[]): string {
-        //Serialise the screen image into a string
-        //let screen: Image = led.screenshot();
-
-        let msg: string = "?"
-        let matches: boolean = true
-        for (let t = 0; t < signs.length; t++) {
-            matches = true;
-            for (let b = 0; b < 5; b++) {
-                for (let c = 0; c < 5; c++) {
-                    if (selected.pixel(b,c)){
-                        if (!signs[t].pixel(b, c)) {
-                            matches = false;
-                        }
-                    } else if (!selected.pixel(b,c)) {
-                        if (signs[t].pixel(b, c)) {
-                            matches = false;
-                        }
-                    }
-                    /*if (led.point(b, c)) {
-                        if (!signs[t].pixel(b, c)) {
-                            matches = false;
-                        }
-                    } else if (!led.point(b, c)) {
-                        if (signs[t].pixel(b, c)) {
-                            matches = false;
-                        }
-                    }*/
-
-                }
-            }
-            if (matches) {
-                msg = msgs[t]
-                break;
-            }
-        }
-        selected = images.createImage(`
-                            . . . . .
-                            . . . . .
-                            . . . . .
-                            . . . . .
-                            . . . . .
-                            `);
-        x = 2;
-        y = 2;
-        return msg;
-    }
-
+    
 /* ****************************************************************
 
     UWB functions
@@ -803,34 +548,7 @@ namespace digitalghosthunt {
 
 
 
-/* ****************************************************************
 
-    New Spirit sign functions
-
-    */
-     
-    
-    //% shim=digitalghosthunt::loadFragment
-    export function loadFragment(signIndex:number, fragIndex:number, sign:Image) {
-        
-    }
-
-    //% shim=digitalghosthunt::shiftImageLeft
-    export function shiftImageLeft(i:Image){
-        
-    }
-
-    //% shim=digitalghosthunt::applyTransformation
-    export function applyTransformation(i:Image,transformType:number){
-
-    }
-
-    //% shin=digitalghosthunt:loadSpiritSigns
-    export function loadSpiritSigns(){
-
-    }
-
-    
     
 
 
