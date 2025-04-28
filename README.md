@@ -1,5 +1,5 @@
-# The Digital Ghost Hunt
-## SEEK Ghost Detector Core Library Mk 2
+# The Digital Ghost Hunt: SEEK Ghost Detector Core Library Mk 2
+## Created by Elliott Hall
 ### Version 1.0
 
 This library is part of [The Digital Ghost Hunt](https://digitalghosthunt.com) an AHRC-funded project in coding education and Immersive theatre.  If you have no idea what that is, visit our website first.  The rest will make more sense.
